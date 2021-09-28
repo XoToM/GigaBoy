@@ -21,12 +21,14 @@ namespace GigaBoy.Components.Graphics
         }
         public byte DirectRead(ushort address)
         {
-            return Memory[address];
+            return Memory[address-0x8000];
         }
 
         public void Write(ushort address, byte value)
         {
-            throw new NotImplementedException();
+        }
+        public void DirectWrite(ushort address, byte value) {
+            Memory[address-0x8000] = value;
         }
     }
 }

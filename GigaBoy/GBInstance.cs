@@ -7,5 +7,9 @@ namespace GigaBoy
     {
         public PPU PPU { get; init; }
         public VRAM VRam { get; init; }
+        public GBInstance() {
+            VRam = new(this);
+            PPU = new(this);
+        }
     }
 }
