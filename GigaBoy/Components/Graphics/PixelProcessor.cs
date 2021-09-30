@@ -17,11 +17,19 @@ namespace GigaBoy.Components.Graphics
             GB = ppu.GB;
             PPU = ppu;
         }
-
-        public Color FetchPixel(byte x,byte y) {
-            if (!PPU.LCDC.HasFlag(LCDCFlags.PPUEnable)) return Color.White;
+        /// <summary>
+        /// Calculates and returns the color of the given pixel. 
+        /// Only renders the background and the window.
+        /// </summary>
+        /// <param name="x">X coord of the pixel</param>
+        /// <param name="y">Y coord of the pixel</param>
+        /// <param name="doScrolling">Should the method calculate everything in global coordinates (false) or screenspace coordinates (true).</param>
+        /// <param name="drawWindow">Should the method draw the window (true) or ignore it (false). 
+        /// When set to true the window will still be ignored if the pixel is outside of it, or the window is disabled by the ppu.</param>
+        /// <returns></returns>
+        public Color FetchPixel(byte x,byte y,bool drawWindow,bool doScrolling) {
             ushort tileAddress = 0x9800;
-            if (PPU.LCDC.HasFlag(LCDCFlags.WindowEnable) && (x >= PPU.WX) && (y >= PPU.WY))
+            if (drawWindow && PPU.LCDC.HasFlag(LCDCFlags.WindowEnable) && ((doScrolling && (x >= PPU.WX) && (y >= PPU.WY)) || (!doScrolling && (x+PPU.SCX >= PPU.WX) && (y + PPU.SCY >= PPU.WY))))
             {
                 if (PPU.LCDC.HasFlag(LCDCFlags.WindowTileMap)) tileAddress = 0x9C00;
                 x = (byte)(x - PPU.WX);
@@ -29,8 +37,11 @@ namespace GigaBoy.Components.Graphics
             }
             else {
                 if (PPU.LCDC.HasFlag(LCDCFlags.BGTileMap)) tileAddress = 0x9C00;
-                x = (byte)(x + PPU.SCX);
-                y = (byte)(y + PPU.SCY);
+                if (doScrolling)
+                {
+                    x = (byte)(x + PPU.SCX);
+                    y = (byte)(y + PPU.SCY);
+                }
             }
             tileAddress += (ushort)((x >> 3) + (y>>3)*32);
             byte tileId = GB.VRam.DirectRead(tileAddress);
