@@ -6,13 +6,17 @@ using System.Threading.Tasks;
 
 namespace GigaBoy.Components.Graphics
 {
+    public enum RAMType {RAM,VRAM,SRAM,HRAM,OAM }
     public class RAM : MMIODevice
     {
         public GBInstance GB { get; init; }
         public byte[] Memory { get; init; }
         public bool Reading { get; set; } = true;
         public bool Writing { get; set; } = true;
+        public int Size { get { return Memory.Length; } }
         public byte DisabledReadData { get; set; } = 0xFF;
+        public ushort AddressOffset { get; init; } = 0xFF;
+        public RAMType Type { get; init; } = RAMType.RAM;
 
         public RAM(GBInstance gb,ushort capacity) {
             GB = gb;
@@ -20,8 +24,25 @@ namespace GigaBoy.Components.Graphics
         }
         public byte Read(ushort address)
         {
-            if (GB.PPU.State == PPUStatus.GeneratePict) return 0xFF;
+            if(!Available()) return DisabledReadData;
             return DirectRead(address);
+        }
+        public bool Available() {
+            //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
+            //TODO: Uncomment this when DMA is finished.
+            //if(Type!=RAMType.HRAM&&DMA.Active)return false;
+            switch (Type) {
+                case RAMType.RAM:
+                case RAMType.SRAM:
+                case RAMType.HRAM:
+                    return true;
+                case RAMType.OAM:
+                    return GB.PPU.Enabled&&(GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank);
+                case RAMType.VRAM:
+                    return GB.PPU.State == PPUStatus.GenerateFrame;
+                default:
+                    return false;
+            }
         }
         public byte DirectRead(ushort address)
         {
@@ -42,6 +63,7 @@ namespace GigaBoy.Components.Graphics
 
         public void Write(ushort address, byte value)
         {
+            if (!Available()) return;
             throw new NotImplementedException();
         }
         public void DirectWrite(ushort address, byte value)

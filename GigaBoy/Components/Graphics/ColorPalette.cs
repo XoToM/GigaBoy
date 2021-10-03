@@ -41,26 +41,11 @@ namespace GigaBoy.Components.Graphics
                 sbyte btype = (sbyte)type;
                 if (btype > 2) return;
                 colorIndex = (byte)(colorIndex & 0b11);
-                if (colorIndex == 0 && btype != 0) return;
                 color = (byte)(color & 0b11);
                 Palettes[btype, colorIndex] = color;
             }
         }
         public void ToColors(Span<byte> bytes, Span<ColorContainer> dest, PaletteType palette)
-        {
-            if (bytes.Length % 2 == 1) bytes.Slice(0, bytes.Length - 1);
-            for (int i = 0; i < bytes.Length * 4; i++)
-            {
-                var shift = i % 8;
-                var index = (i / 8) * 2;
-                var mask = 1 << shift;
-                var data1 = (bytes[index] & mask) >> shift;
-                var data2 = ((bytes[index + 1] & mask) >> shift) << 1;
-                var color = GetTrueColor((byte)(data1 | data2), palette);
-                dest[i] = color;
-            }
-        }
-        public void ToColors(Span<byte> bytes, Span<Color> dest, PaletteType palette)
         {
             if (bytes.Length % 2 == 1) bytes.Slice(0, bytes.Length - 1);
             for (int i = 0; i < bytes.Length * 4; i++)

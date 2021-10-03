@@ -8,65 +8,120 @@ using System.Threading.Tasks;
 
 namespace GigaBoy.Components.Graphics
 {
-    public enum PPUStatus : sbyte {HBlank,VBlank,OAMSearch,GeneratePict }
-    [Flags]
-    public enum LCDCFlags : byte {BGPriority=1,OBJEnable=2,OBJSize=4,BGTileMap=8,TileData=16,WindowEnable=32,WindowTileMap=64,PPUEnable=128 }
+    public enum PPUStatus : sbyte {HBlank,VBlank,OAMSearch,GenerateFrame}
     public class PPU
     {
         public GBInstance GB { get; init; }
         public ColorPalette Palette { get; init; }
-        public PixelProcessor PixelProcessor { get; init; }
-        public int Dot { get; protected set; }
-        public Bitmap? CurrentImage { get; protected set; }
-        public PPUStatus State { get; protected set; }
-        /// <summary>
-        /// This register stores the current scanline.
-        /// </summary>
-        public int LY { get; protected set; } = 0;
+        public FIFO FIFO { get; init; }
+
+        public IEnumerator<PPUStatus> Renderer { get; protected set; }
+
+        protected ColorContainer[] frameBuffer = new ColorContainer[160 * 144];
+        protected ColorContainer[] displayBuffer = new ColorContainer[160 * 144];
+        public ColorContainer clearColor { get; set; }
+
+        #region LcdcStat
+        public bool Enabled { get; set; } = false;
+        public bool WindowEnable { get; set; } = false;
+        public bool BackgroundTileMap { get; set; } = false;
+        public bool WindowTileMap { get; set; } = false;
+        public bool TileData { get; set; } = false;
+        public PPUStatus State { get; protected set; } = PPUStatus.VBlank;
+
+        #endregion
+
+        #region Registers
         public byte SCX { get; set; } = 0;
         public byte SCY { get; set; } = 0;
         public byte WX { get; set; } = 0;
         public byte WY { get; set; } = 0;
-
-        public LCDCFlags LCDC { get; set; }
-        //ToDo: Implement the STAT register
+        public byte LY { get; protected set; } = 0;
+        #endregion
 
         public PPU(GBInstance gb) {
             GB = gb;
             Palette = new();
-            PixelProcessor = new(this);
+            Renderer = Scanner().GetEnumerator();
+            FIFO = new(this);
         }
-        public Bitmap GetInstantImage() {
-            Bitmap result = new(160,144);
-            for (byte y = 0; y < 144; y++) {
-                for (byte x = 0; x < 160; x++)
-                {
-                    result.SetPixel(x,y,GetPixel(x,y));
+        #region ScanlineRendering
+        public Span2D<ColorContainer> GetFrame() {
+            return new Span2D<ColorContainer>(frameBuffer,160,144);
+        }
+        public void FrameDone()
+        {
+            var dbuffer = displayBuffer;
+            displayBuffer = frameBuffer;
+            frameBuffer = dbuffer;
+            Array.Fill(frameBuffer, clearColor);
+        }
+        public void Tick() {
+            Renderer.MoveNext();
+            State = Renderer.Current;
+        }
+        public IEnumerable<PPUStatus> Scanner() {
+            while (true)
+            {
+                Array.Fill(frameBuffer, clearColor);
+                while (!Enabled) {
+                    yield return State;
+                }
+                LY = 0;
+                while (Enabled) {
+                    IEnumerator<(byte, byte)?>? pixelFetcher;
+                    if (LY < 144)
+                    {
+                        FIFO.Reset();
+                        int delayDots = 0;
+                        int XCoord = 0;
+                        //Search OAM Here
+                        for (int i = 0; i < 80; i++)
+                        {
+                            ++delayDots;
+                            yield return PPUStatus.OAMSearch;
+                        }
+                        pixelFetcher = FIFO.FetchTileData(false).GetEnumerator();
+                        //pixelFetcher.
+                        while (FIFO.backgroundQueue.Count <= 8)
+                        {
+                            while (!pixelFetcher.Current.HasValue)
+                            {
+                                pixelFetcher.MoveNext();
+                                ++delayDots;
+                                yield return PPUStatus.GenerateFrame;
+                            }
+                            FIFO.EnqueuePixels(pixelFetcher.Current.Value);
+                        }
+                        //Enqueue pixels for sprites if needed here.
+
+                        for (int i = 0; i < (SCX & 3); i++) {
+                            ++delayDots;
+                            FIFO.ShiftOut();
+                            yield return PPUStatus.GenerateFrame;
+                        }
+                        while(XCoord<160)
+                        {
+                            ++delayDots;
+                            yield return PPUStatus.GenerateFrame;
+                        }
+                        for (int i = 0; i < 456 - delayDots; i++)
+                        {
+                            yield return PPUStatus.HBlank;
+                        }
+                    }
+                    if (LY > 143) {
+                        for (int i=0;i<456;i++) {
+                            yield return PPUStatus.VBlank;
+                        }
+                    }
+                    ++LY;
+                    if (LY >= 154) LY = 0;
                 }
             }
-            return result;
-        }
-        protected Color GetPixel(byte x,byte y,bool drawWindow=true,bool doScrolling=true) {
-            //PPU is disabled, so we return instantly.
-            if (!LCDC.HasFlag(LCDCFlags.PPUEnable)) return Color.White;
-            return PixelProcessor.FetchPixel(x,y,drawWindow,doScrolling);
-        }
-        public void ForceDrawTile(ushort address,Bitmap image,int x,int y,PaletteType palette) {
-            int bx = x;
-            for (int v = 0; v < 8; v++) {
-                byte data1 = GB.VRam.DirectRead(address++);
-                byte data2 = GB.VRam.DirectRead(address++);
-                byte shift = 7;
-                
-                for (int u = 0; u < 8; u++)
-                {
-                    var color = ((data2 >> shift)<<1)&2;
-                    color = ((data1 >> shift)&1) | color;
-                    --shift;
-                    image.SetPixel(x+u,y+v,Palette.GetTrueColor((byte)color,palette));
-                }
-            }
-        }
+        } 
+        #endregion
+        #region BlockRendering
         public void GetTileMapBlock(int x,int y, Span2D<byte> tiles,ushort tileMapAddr) {
             int address = tileMapAddr;
             var vram = GB.VRam;
@@ -107,7 +162,8 @@ namespace GigaBoy.Components.Graphics
                 }
             }
         }
-
+#endregion
+        #region FormatConverters
         public void DrawBitmap(Span2D<ColorContainer> image,Bitmap bitmap,int x,int y) {
             if (bitmap.Width < image.Width + x || bitmap.Height < image.Width + y) throw new ArgumentOutOfRangeException($"Bitmap is too small. It has to be at least {image.Width + x}x{image.Width + y}");
             Span<byte> bytes = stackalloc byte[image.Width*image.Height*4];
@@ -127,5 +183,6 @@ namespace GigaBoy.Components.Graphics
             Marshal.Copy(bytes.ToArray(),0, bdata.Scan0,size);
             bitmap.UnlockBits(bdata);
         }
+        #endregion
     }
 }

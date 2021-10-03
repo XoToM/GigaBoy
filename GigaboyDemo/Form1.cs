@@ -51,20 +51,21 @@ namespace GigaboyDemo
         private void Form1_Load(object sender, EventArgs e)
         {
             Random rng = new();
-            for (ushort a = 0x8000; a < 0xA000; a++) {
-            //for (ushort a = 0x9800; a < 0xA000; a++) {
-                //GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF&1));
-                GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF));
+            for (ushort a = 0x9800; a < 0xA000; a++){
+                //for (ushort a = 0x8000; a < 0xA000; a++) {
+                GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF&1));
+                //GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF));
             }
             for (ushort a = 0x8000; a < 0x8010; a++)
             {
-                GB.VRam.DirectWrite(a, (byte)0);
+                GB.VRam.DirectWrite(a, 0);
             }
             for (ushort a = 0x8010; a < 0x8020; a++)
             {
-                GB.VRam.DirectWrite(a, (byte)0xFF);
+                GB.VRam.DirectWrite(a, 0xFF);
             }
-            GB.PPU.LCDC = GB.PPU.LCDC | GigaBoy.Components.Graphics.LCDCFlags.PPUEnable| GigaBoy.Components.Graphics.LCDCFlags.WindowEnable;
+            GB.PPU.Enabled = true;
+            GB.PPU.WindowEnable = true;
             GB.PPU.WY = 64;
             GameWindowScale = 3;//Draws the image
             MLoop();
