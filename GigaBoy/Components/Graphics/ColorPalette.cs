@@ -24,7 +24,7 @@ namespace GigaBoy.Components.Graphics
     public class ColorPalette
     {
         public readonly byte[,] Palettes = new byte[3, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 } };
-        public readonly Color[] TruePalette = new Color[4] {Color.White,Color.LightGray,Color.DarkGray,Color.Black };
+        public readonly Color[] TruePalette = new Color[4] {Color.FromArgb(0xFF,0xFF,0xFF),Color.FromArgb(0xAA,0xAA,0xAA),Color.FromArgb(0x55,0x55,0x55),Color.FromArgb(0,0,0) };
         public Color GetTrueColor(byte colorIndex,PaletteType type) {
             unchecked
             {

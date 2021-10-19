@@ -51,10 +51,10 @@ namespace GigaboyDemo
         private void Form1_Load(object sender, EventArgs e)
         {
             Random rng = new();
-            for (ushort a = 0x9800; a < 0xA000; a++){
-                //for (ushort a = 0x8000; a < 0xA000; a++) {
-                GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF&1));
-                //GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF));
+            //for (ushort a = 0x9800; a < 0xA000; a++){
+                for (ushort a = 0x8000; a < 0xA000; a++) {
+                //GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF&1));
+                GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF));
             }
             for (ushort a = 0x8000; a < 0x8010; a++)
             {
@@ -65,7 +65,7 @@ namespace GigaboyDemo
                 GB.VRam.DirectWrite(a, 0xFF);
             }
             GB.PPU.Enabled = true;
-            GB.PPU.WindowEnable = true;
+            //GB.PPU.WindowEnable = true;
             GB.PPU.WY = 64;
             GameWindowScale = 3;//Draws the image
             MLoop();
@@ -80,9 +80,12 @@ namespace GigaboyDemo
         public async void MLoop()
         {
             while (true) {
-                await Task.Delay(16);
-                GB.PPU.WX++;
-                GB.PPU.SCX++;
+                for (int i = 0; i < 16; i++) {
+                    for(int j=0;j<128;j++) GB.PPU.Tick();
+                    await Task.Delay(1);
+                }
+                //GB.PPU.WX++;
+                //GB.PPU.SCX++;
                 Invalidate();
                 TilemapViewer.tm.Redraw();
                 TileDataViewer.tv.Redraw();

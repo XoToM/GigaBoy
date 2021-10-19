@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace GigaBoy.Components.Graphics
 {
     public enum PPUStatus : sbyte {HBlank,VBlank,OAMSearch,GenerateFrame}
-    public class PPU
+    public class PPU : ClockBoundDevice
     {
         public GBInstance GB { get; init; }
         public ColorPalette Palette { get; init; }
@@ -22,12 +22,129 @@ namespace GigaBoy.Components.Graphics
         public ColorContainer clearColor { get; set; }
 
         #region LcdcStat
+        /// <summary>
+        /// Bit 7 of LCDC
+        /// </summary>
         public bool Enabled { get; set; } = false;
-        public bool WindowEnable { get; set; } = false;
-        public bool BackgroundTileMap { get; set; } = false;
+        /// <summary>
+        /// Bit 6 of LCDC
+        /// </summary>
         public bool WindowTileMap { get; set; } = false;
+        /// <summary>
+        /// Bit 5 of LCDC
+        /// </summary>
+        public bool WindowEnable { get; set; } = false;
+        /// <summary>
+        /// Bit 4 of LCDC
+        /// </summary>
         public bool TileData { get; set; } = false;
+        /// <summary>
+        /// Bit 3 of LCDC
+        /// </summary>
+        public bool BackgroundTileMap { get; set; } = false;
+        /// <summary>
+        /// Bit 2 of LCDC
+        /// false = 8x8 sprites
+        /// true = 8x16 sprites
+        /// </summary>
+        public bool ObjectSize { get; set; } = false;
+        /// <summary>
+        /// Bit 1 of LCDC
+        /// false = sprites disabled
+        /// true = sprites enabled
+        /// </summary>
+        public bool ObjectEnable { get; set; } = false;
+        /// <summary>
+        /// Bit 0 of LCDC
+        /// false = Background and Window are not displayed
+        /// true = Background and Window are displayed if their correspoding enable bits are set
+        /// </summary>
+        public bool BGWindowPriority { get; set; } = true;
+        /// <summary>
+        /// Bit 0 and 1 of STAT
+        /// </summary>
         public PPUStatus State { get; protected set; } = PPUStatus.VBlank;
+        private bool _mode0InterruptEnable;
+        public bool Mode0InterruptEnable
+        {
+            get { return _mode0InterruptEnable; }
+            set
+            {
+                if (value && !Mode0InterruptEnable && (State == PPUStatus.HBlank)) GB.CPU.SetInterrupt(InterruptType.Stat);
+                _mode0InterruptEnable = value;
+            }
+        }
+        private bool _mode1InterruptEnable;
+        public bool Mode1InterruptEnable
+        {
+            get { return _mode1InterruptEnable; }
+            set
+            {
+                if (value && !Mode1InterruptEnable && (State == PPUStatus.VBlank)) GB.CPU.SetInterrupt(InterruptType.Stat);
+                _mode1InterruptEnable = value;
+            }
+        }
+        private bool _mode2InterruptEnable;
+        public bool Mode2InterruptEnable
+        {
+            get { return _mode2InterruptEnable; }
+            set
+            {
+                if (value && !Mode2InterruptEnable && (State == PPUStatus.OAMSearch)) GB.CPU.SetInterrupt(InterruptType.Stat);
+                _mode2InterruptEnable = value;
+            }
+        }
+        private bool _lycInterruptEnable;
+        public bool LYCInterruptEnable
+        {
+            get { return _lycInterruptEnable; }
+            set
+            {
+                if (value && !LYCInterruptEnable && (LY==LYC)) GB.CPU.SetInterrupt(InterruptType.Stat);
+                _lycInterruptEnable = value;
+            }
+        }
+
+        public byte LCDC { get { 
+                return (byte)((BGWindowPriority?1:0)|(ObjectEnable?2:0)|(ObjectSize?4:0)|(BackgroundTileMap?8:0)|(TileData?16:0)|(WindowEnable?32:0)|(WindowTileMap?64:0)|(Enabled?128:0));
+            }
+            set {
+                BGWindowPriority = (value & 1) != 0;
+                ObjectEnable = (value & 2) != 0;
+                ObjectSize = (value & 4) != 0;
+                BackgroundTileMap = (value & 8) != 0;
+                TileData = (value & 16) != 0;
+                WindowEnable = (value & 32) != 0;
+                WindowTileMap = (value & 64) != 0;
+                Enabled = (value & 128) != 0;
+            }
+        }
+        //  All Gameboy Models before CGB had a hardware bug which caused the stat to be set to 0xFF for one cycle, which could trigger the STAT Interrupt. This bug should be emulated, as some games relied on it to work properly.
+        private byte _setStat = 0xFF;
+        public byte STAT 
+        { 
+            get {
+                return DirectSTAT;
+            }
+            set
+            {
+                _setStat = value;
+                DirectSTAT = 0xFF;
+            }
+        }
+        public byte DirectSTAT
+        {
+            get
+            {
+                return (byte)((((int)State) & 3) | (LY == LYC ? 4 : 0) | (Mode0InterruptEnable?8:0) | (Mode1InterruptEnable?16:0)|(Mode2InterruptEnable?32:0)|(LYCInterruptEnable?64:0));
+            }
+            set {
+                Mode0InterruptEnable = (value & 8) != 0;
+                Mode1InterruptEnable = (value & 16) != 0;
+                Mode2InterruptEnable = (value & 32) != 0;
+                LYCInterruptEnable = (value & 64) != 0;
+            }
+        }
 
         #endregion
 
@@ -36,7 +153,14 @@ namespace GigaBoy.Components.Graphics
         public byte SCY { get; set; } = 0;
         public byte WX { get; set; } = 0;
         public byte WY { get; set; } = 0;
-        public byte LY { get; protected set; } = 0;
+        private byte _ly = 0;
+        public byte LY
+        {
+            get { return _ly; }
+            set { _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
+        }
+
+        public byte LYC { get; set; } = 0;
         #endregion
 
         public PPU(GBInstance gb) {
@@ -57,69 +181,150 @@ namespace GigaBoy.Components.Graphics
             Array.Fill(frameBuffer, clearColor);
         }
         public void Tick() {
-            Renderer.MoveNext();
-            State = Renderer.Current;
+            try
+            {
+                if (_setStat != 0xFF) {
+                    DirectSTAT = _setStat;
+                    _setStat = 0xFF;
+                }
+                Renderer.MoveNext();
+                State = Renderer.Current;
+            }
+            catch (Exception e) {
+                GB.Error(e.ToString());
+            }
         }
         public IEnumerable<PPUStatus> Scanner() {
             while (true)
             {
                 Array.Fill(frameBuffer, clearColor);
-                while (!Enabled) {
+                while (!Enabled)
+                {
                     yield return State;
                 }
-                LY = 0;
-                while (Enabled) {
-                    IEnumerator<(byte, byte)?>? pixelFetcher;
-                    if (LY < 144)
+                while (Enabled)
+                {
+                    LY = 0;
+                    bool yWindow = false;
+                    while (LY < 144)
                     {
-                        FIFO.Reset();
-                        int delayDots = 0;
-                        int XCoord = 0;
-                        //Search OAM Here
-                        for (int i = 0; i < 80; i++)
-                        {
-                            ++delayDots;
-                            yield return PPUStatus.OAMSearch;
-                        }
-                        pixelFetcher = FIFO.FetchTileData(false).GetEnumerator();
-                        //pixelFetcher.
-                        while (FIFO.backgroundQueue.Count <= 8)
-                        {
-                            while (!pixelFetcher.Current.HasValue)
-                            {
-                                pixelFetcher.MoveNext();
-                                ++delayDots;
-                                yield return PPUStatus.GenerateFrame;
-                            }
-                            FIFO.EnqueuePixels(pixelFetcher.Current.Value);
-                        }
-                        //Enqueue pixels for sprites if needed here.
-
-                        for (int i = 0; i < (SCX & 3); i++) {
-                            ++delayDots;
-                            FIFO.ShiftOut();
-                            yield return PPUStatus.GenerateFrame;
-                        }
-                        while(XCoord<160)
-                        {
-                            ++delayDots;
-                            yield return PPUStatus.GenerateFrame;
-                        }
-                        for (int i = 0; i < 456 - delayDots; i++)
-                        {
-                            yield return PPUStatus.HBlank;
-                        }
+                        if (LY == WY && WindowEnable) yWindow = true;
+                        foreach (var s in ScanlineScanner(yWindow)) yield return s;
+                        GB.Log($"Scanline = {LY}");
+                        if (!WindowEnable) yWindow = false;
+                        ++LY;
                     }
-                    if (LY > 143) {
-                        for (int i=0;i<456;i++) {
-                            yield return PPUStatus.VBlank;
-                        }
+                    GB.CPU.SetInterrupt(InterruptType.VBlank);
+                    if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+                    FrameDone();
+                    for (int i = 0; i < 10; i++)
+                    {
+                        GB.Log($"VBlank = {LY}");
+                        yield return PPUStatus.VBlank;
+                        ++LY;
                     }
-                    ++LY;
-                    if (LY >= 154) LY = 0;
                 }
             }
-        } 
+        }
+        protected void SetPixel(int x,int y,ColorContainer color) {
+            //GB.Log($"Pixel Set at ({x}, {y})");
+            var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
+            screen[y, x] = color;
+        }
+        public Bitmap GetInstantImage() {
+            try
+            {
+                Span2D<ColorContainer> img = new(displayBuffer, 160, 144);
+                var bmp = new Bitmap(160, 144);
+                DrawBitmap(img, bmp, 0, 0);
+                return bmp;
+            }
+            catch (Exception e) {
+                GB.Error(e.ToString());
+                var b = new Bitmap(1, 1);
+                b.SetPixel(0, 0, Color.Pink);
+                return b;
+            }
+        }
+        public IEnumerable<PPUStatus> ScanlineScanner(bool yWindow) {
+            int delayDots = 0;
+            var stat = PPUStatus.OAMSearch;
+            if (Mode2InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+            for (; delayDots < 80; delayDots++) {
+                yield return stat;
+            }
+
+            stat = PPUStatus.GenerateFrame;
+
+            int xPixel = 0 - (SCX & 7);
+
+            bool xWindow = false;
+            bool usingWindow = false;
+            ushort backgroundAddress = calculateBackgroundTileMapAddress();
+            ushort windowAddress = calculateWindowTileMapAddress();
+            IEnumerator<(byte,byte)?> fetcher = FIFO.FetchTileData(backgroundAddress++,SCY+LY,xPixel).GetEnumerator();
+            //bool fetcherFinished = false;
+
+            while (xPixel < 160) {
+                if (!Enabled) {
+                    if (xPixel > 0)
+                        SetPixel(xPixel, LY, clearColor);
+                    ++xPixel;
+                    ++delayDots;
+                    yield return stat;
+                    continue;
+                }
+                xWindow = xWindow || ((xPixel + 7 == WX) && (WX > 0)) || (WX == 0 && xPixel <= 0);
+                bool doWindow = WindowEnable && yWindow && xWindow;
+
+                fetcher.MoveNext();
+                bool fetcherFinished = fetcher.Current.HasValue;
+
+                if (doWindow && (!usingWindow)) {
+                    usingWindow = true;
+                    FIFO.ClearLastBits();
+                    fetcher = FIFO.FetchTileData(windowAddress++,LY - WY, xPixel).GetEnumerator();
+                    fetcherFinished = false;
+                }
+                if ((!WindowEnable) || WY > LY || WX > xPixel) { 
+                    usingWindow = false;
+                    xWindow = false;
+                }
+
+                if (FIFO.BackgroundPixels <= 8 && fetcherFinished) {
+#pragma warning disable CS8629 
+                    var pushPixel = fetcher.Current.Value;//fetcherFinished will only be true when this value is not null, but VS complains for some reason, so I have to disable the nullable warning here. This will never get reached if the value is null.
+#pragma warning restore CS8629 
+                    FIFO.EnqueuePixels(pushPixel);
+                    fetcher = FIFO.FetchTileData(usingWindow ? windowAddress++ : backgroundAddress,usingWindow?WY+LY:SCX+LY, xPixel).GetEnumerator();
+                    ++backgroundAddress;
+                }
+                if (FIFO.BackgroundPixels > 8) {
+                    var pixel = FIFO.ShiftOut();
+                    if (xPixel >= 0 && BGWindowPriority) {
+                        SetPixel(xPixel, LY, pixel);
+                    }
+                    ++xPixel;
+                }
+                ++delayDots;
+                yield return stat;
+            }
+            stat = PPUStatus.HBlank;
+            if (Mode0InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+            for (int i = 0; i < 456 - delayDots; i++) {
+                yield return stat;
+            }
+        }
+        protected ushort calculateBackgroundTileMapAddress()
+        {
+            return (ushort)(0x9800 | ((BackgroundTileMap ? 1 : 0) << 10) | (((SCY + LY) & 0xF8) << 2) | ((SCX & 0xF8) >> 3));
+        }
+        protected ushort calculateWindowTileMapAddress()
+        {
+            return (ushort)(0x9800 | ((WindowTileMap?1:0) << 10) | (((LY - WY) & 0xf8) << 2));
+
+        }
+
         #endregion
         #region BlockRendering
         public void GetTileMapBlock(int x,int y, Span2D<byte> tiles,ushort tileMapAddr) {
@@ -128,8 +333,8 @@ namespace GigaBoy.Components.Graphics
             y = y * 32;
             for (int v = 0; v < tiles.Height; v++) {
                 for (int u = 0; u < tiles.Width; u++) {
-                    ushort addr = (ushort)(address + u + x + y + v * 32);
-                    var data = vram.DirectRead(addr);
+                    ushort addr = (ushort)(address + ((u + x)&31) + ((y + v)&31) * 32);
+                    var data = vram.DirectRead((ushort)(addr-0x8000));
                     tiles[v, u] = data;
                 }
             }
@@ -143,7 +348,7 @@ namespace GigaBoy.Components.Graphics
         public Span<byte> GetTileData(byte tile,ushort tileDataAddr) {
             int address = tileDataAddr;
             if (tile > 127) address = 0x8000;
-            return GB.VRam.DirectRead((ushort)(address+tile*16),16);
+            return GB.VRam.DirectRead((ushort)(address+tile*16-0x8000),16);
         }
         public void DrawRegion(Span2D<byte> tilemap,Span2D<ColorContainer> image,ushort tileDataAddr,PaletteType palette) {
             if (image.Width < tilemap.Width * 8 || image.Height < tilemap.Height * 8) throw new OutOfMemoryException($"Image buffer needs to be at least {tilemap.Width * 8}x{tilemap.Height * 8}");
@@ -165,7 +370,7 @@ namespace GigaBoy.Components.Graphics
 #endregion
         #region FormatConverters
         public void DrawBitmap(Span2D<ColorContainer> image,Bitmap bitmap,int x,int y) {
-            if (bitmap.Width < image.Width + x || bitmap.Height < image.Width + y) throw new ArgumentOutOfRangeException($"Bitmap is too small. It has to be at least {image.Width + x}x{image.Width + y}");
+            if (bitmap.Width < image.Width + x || bitmap.Height < image.Height + y) throw new ArgumentOutOfRangeException($"Bitmap is too small. It has to be at least {image.Width + x}x{image.Width + y}");
             Span<byte> bytes = stackalloc byte[image.Width*image.Height*4];
             for (int v = 0; v < image.Height; v++) {
                 for (int u = 0; u < image.Width; u++) {

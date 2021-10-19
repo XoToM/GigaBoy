@@ -4,29 +4,46 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+//
+//  Possible improvement: This is not certain, but its possible that .NET doesn't like using byte as the primary type, so the conversions might cause tiny slowdowns.
+//  This would mean that all the uses of the byte type and the conversions to it are slowing down the code.
+//  TODO: Research this more.
+//
 namespace GigaBoy.Components.Graphics
 {
     public class FIFO
     {
         public PPU PPU { get; init; }
         public GBInstance GB { get; init; }
+        public int BackgroundPixels { get; protected set; } = 0;
         public RAM VRAM { get; init; }
-        public Queue<byte> backgroundQueue = new(16);
+        public uint backgroundQueue = 0;
         public (byte, PaletteType)[] spriteQueue = new (byte, PaletteType)[8];
-        public int TileXOffset = 0;
         public FIFO(PPU ppu) {
             GB = ppu.GB;
             VRAM = GB.VRam;
             PPU = ppu;
         }
         public void Reset() {
-            backgroundQueue.Clear();
+            backgroundQueue = 0;
+            BackgroundPixels = 0;
             var cv = ((byte)0, PaletteType.Background);
             Array.Fill(spriteQueue,cv);
-            TileXOffset = 0;
+        }
+        protected byte DequeuePixel() {
+            if (BackgroundPixels <= 8) throw new DataMisalignedException("Cannot shift out pixels if the pixel FIFO contains 8 pixels or less.");
+            const uint MASK = 0xC0000000;
+            uint color = backgroundQueue & MASK;
+            backgroundQueue = backgroundQueue << 2;
+            --BackgroundPixels;
+            return (byte)(color >> 30);
+        }
+        public void ClearLastBits()
+        {
+            backgroundQueue = backgroundQueue & 0xFFFF0000;
         }
         public ColorContainer ShiftOut() {
-            byte color = backgroundQueue.Dequeue();
+            byte color = DequeuePixel();
             var palette = PaletteType.Background;
             if (spriteQueue[0].Item1 != 0) {
                 color = spriteQueue[0].Item1;
@@ -36,10 +53,10 @@ namespace GigaBoy.Components.Graphics
             spriteQueue[7] = (0, PaletteType.Background);
             return PPU.Palette.GetTrueColor(color,palette);
         }
-        public IEnumerable<(byte, byte)?> FetchTileData(bool window)//Apparently the window only pauses the PPU for 8 dots as its pixels have to be loaded into the FIFO.
+        /*public IEnumerable<(byte, byte)?> FetchTileData(bool window)//Apparently the window only pauses the PPU for 8 dots as its pixels have to be loaded into the FIFO.
             //Disgarding each pixel from the FIFO does also take 1 dot, so SCX=5 would add 5 dots to mode 3
         {//Run this every time the pixelQueue.Length==8, so the data for the next pixel can be obtained while the FIFO is still processing the previous 8 pixels.
-            yield return null;
+            yield return null;          //Older method for fetching tile data. This method has incorrect timings, and doesnt support fetching sprites. Don't use it.
 
             int y = (PPU.SCY+PPU.LY)&0xFF;
             int oy = y % 8;
@@ -69,7 +86,7 @@ namespace GigaBoy.Components.Graphics
 
             byte dataHigh = VRAM.DirectRead(++address);
             yield return (dataLow, dataHigh);
-        }
+        }//*/
         /*public IEnumerable<bool> ProcessSprite(int spriteIndex)   //drawing sprites stops the FIFO for 6 dots so the sprite's data can be fetched
         {//Run this every time the pixelQueue.Length==8, so the data for the next pixel can be obtained while the FIFO is still processing the previous 8 pixels.
             yield return false;
@@ -98,18 +115,63 @@ namespace GigaBoy.Components.Graphics
             MixSprite((dataLow,dataHigh),palette);//Pass in the sprite's palette
             yield return true;
         }//*/
+
+
+        public IEnumerable<(byte, byte)?> FetchTileData(ushort tileMap,int scrollY,int px=0,bool fetchSprite=false) {
+            yield return null;
+            byte tileId = 0;
+            if (!fetchSprite) {
+                tileId = VRAM.DirectRead((ushort)(tileMap-0x8000));
+                Span2D<byte> til = new Span2D<byte>(stackalloc byte[1],1,1);
+                PPU.GetTileMapBlock(px / 8, PPU.LY / 8, til, (ushort)(PPU.BackgroundTileMap ? 0x9c00 : 0x9800));
+                if (til[0, 0] != tileId) GB.Log($"Incorrect tile fetched ({tileId:X} was fetched, should be {til[0,0]:X})");
+            }
+            if (fetchSprite) {
+                throw new NotImplementedException("Sprites have not been implemented yet.");
+            }
+            yield return null;
+            ushort tileAddr;
+            if (!PPU.TileData)
+            {
+                tileAddr = (ushort)((tileId << 4) | ((scrollY & 0x7) << 1));
+            }
+            else
+            {
+                tileAddr = (ushort)((0x1000 - (tileId << 4)) | ((scrollY & 0x7) << 1));
+            }
+            yield return null;
+
+            byte tileDataLow = VRAM.Read((ushort)((tileAddr|0x9800)-0x8000));
+            yield return null;
+            if (!PPU.TileData)
+            {
+                tileAddr = (ushort)((tileId << 4) | ((scrollY & 0x7) << 1));
+            }
+            else
+            {
+                tileAddr = (ushort)((0x1000 - (tileId << 4)) | ((scrollY & 0x7) << 1));
+            }
+            tileAddr = (ushort)(tileAddr | 1);
+            yield return null;
+
+            byte tileDataHigh = VRAM.Read((ushort)((tileAddr|0x9800)-0x8000));
+            yield return (tileDataLow,tileDataHigh);
+        }
+
         public void EnqueuePixels((byte,byte) data)
         {
-            const byte mask = 0b10000000;
-            byte data1 = data.Item1;
-            byte data2 = data.Item2;
+            uint mask = 1;
+            uint data1 = data.Item1;
+            uint data2 = data.Item2;
+            ClearLastBits();
+            BackgroundPixels += 8;
             for (int i = 0; i < 8; i++)
             {
-                byte color = (byte)((data1 & mask) >> 7);
-                color = (byte)(color | ((data2 & mask) >> 6));
-                backgroundQueue.Enqueue(color);
-                data1 = (byte)(data1 << 1);
-                data2 = (byte)(data2 << 1);
+                uint color = data1 & mask;
+                color = color | ((data2 & mask) << 1);
+                mask = mask << 1;
+                color = color << (i * 2);
+                backgroundQueue = backgroundQueue | color;
             }
         }
         public void MixSprite((byte, byte) data,PaletteType palette) {

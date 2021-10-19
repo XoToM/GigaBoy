@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31613.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GigaBoy", "GigaBoy\GigaBoy.csproj", "{94369C78-5BEF-4300-B65A-CC27B955227A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaBoy", "GigaBoy\GigaBoy.csproj", "{94369C78-5BEF-4300-B65A-CC27B955227A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GigaboyDemo", "GigaboyDemo\GigaboyDemo.csproj", "{B5D2C47A-FE43-401A-A67E-26C1E02296E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaboyDemo", "GigaboyDemo\GigaboyDemo.csproj", "{B5D2C47A-FE43-401A-A67E-26C1E02296E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GigaBoyTests", "GigaBoyTests\GigaBoyTests.csproj", "{DEDFB427-9F00-41ED-83DE-6177CEFE1198}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{B5D2C47A-FE43-401A-A67E-26C1E02296E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B5D2C47A-FE43-401A-A67E-26C1E02296E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B5D2C47A-FE43-401A-A67E-26C1E02296E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DEDFB427-9F00-41ED-83DE-6177CEFE1198}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DEDFB427-9F00-41ED-83DE-6177CEFE1198}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DEDFB427-9F00-41ED-83DE-6177CEFE1198}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DEDFB427-9F00-41ED-83DE-6177CEFE1198}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
