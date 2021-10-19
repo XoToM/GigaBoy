@@ -8,23 +8,44 @@ using System.Threading.Tasks;
 
 namespace GigaBoy.Components.Mappers
 {
-    public class MemoryMapper: MMIODevice
+    public class MemoryMapper : MMIODevice
     {
         public byte[] RomImage { get; set; }
         public GBInstance GB { get; protected set; }
         public RAM SRam { get; protected set; }
-        public MemoryMapper(GBInstance gb,byte[] romImage) {
+        public bool SaveSRam { get; set; } = false;
+        public int SRamBankOffset { get; set; } = 0;
+        public int RomBankOffset { get; set; } = 0;
+        public MemoryMapper(GBInstance gb,byte[] romImage,bool battery) {
             RomImage = romImage;
             GB = gb;
-            SRam = new(gb, 0x2000) {Type = RAMType.SRAM };
+            SaveSRam = battery;
+            SRam = new(gb, GetSRamSize()) {Type = RAMType.SRAM };
+        }
+        public int GetSRamSize() {
+            switch (RomImage[0x0149]) {
+                case 0://Cartridge has no RAM. This emulator doesn't currently emulate the MDR register, so I will emulate the ram anyway. Its contents won't be saved.
+                case 1://Unused, assuming the same behaviour as No Ram
+                    SaveSRam = false;
+                    return 0x2000;
+                case 2:
+                    return 0x2000;
+                case 3:
+                    return 0x8000;
+                case 4:
+                    return 0x20000;
+                case 5:
+                    return 0x10000;
+            }
+            return 0x2000;
         }
         public byte GetByte(ushort address)
         {
             GB.Log($"Read [{address:X}]");
             if (address < 0x8000) return Read(address);
 
-            if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000));
-            if (address < 0xC000) return SRam.Read((ushort)(address - 0xA000));
+            if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000 + RomBankOffset));
+            if (address < 0xC000) return SRam.Read((ushort)(address - 0xA000 + SRamBankOffset));
             if (address < 0xE000) return GB.WRam.Read((ushort)(address - 0xC000));
             if (address < 0xFE00) return GB.WRam.Read((ushort)(address - 0xE000));
             if (address < 0xFF00) return 0xFF;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
@@ -59,8 +80,8 @@ namespace GigaBoy.Components.Mappers
         {
             if (address < 0x8000) Write(address,value);
 
-            if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000),value);
-            if (address < 0xC000) SRam.Write((ushort)(address - 0xA000),value);
+            if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000 + RomBankOffset),value);
+            if (address < 0xC000) SRam.Write((ushort)(address - 0xA000 + SRamBankOffset),value);
             if (address < 0xE000) GB.WRam.Write((ushort)(address - 0xC000),value);
             if (address < 0xFE00) GB.WRam.Write((ushort)(address - 0xE000),value);
             if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
@@ -117,21 +138,32 @@ namespace GigaBoy.Components.Mappers
             return;
         }
 
+        public static MemoryMapper GetMapperObject(GBInstance gb,byte mapperId,byte[] rom) {
+            switch (mapperId)
+            {
+                case 0:     //ROM
+                    return new MemoryMapper(gb, rom, false);
+                case 8:     //ROM + RAM
+                    return new MemoryMapper(gb, rom, false);
+                case 9:     //ROM + RAM + BATTERY
+                    return new MemoryMapper(gb, rom, true);
+                default:
+                    throw new NotImplementedException($"Mapper type {mapperId:X} has not been implemented yet.");
+            }
+        }
         public static MemoryMapper GetMemoryMapper(GBInstance gb,string romFilename) {
             byte[] rom = File.ReadAllBytes(romFilename);
-            if (rom.Length < 32768) {
-                gb.Log("Rom file is smaller than expected: Padding rom with 0x00 bytes");
-                byte[] rom1 = new byte[32768];
+            if (rom.Length < 0x8000) {
+                gb.Log("Rom file is smaller than expected: Padding rom with 0x00 bytes. Real gameboy wouldn't care.");
+                byte[] rom1 = new byte[0x8000];
                 Array.Fill<byte>(rom1,0);
                 rom.CopyTo(rom1.AsSpan());
             }
-            byte mapper = rom[0x0147];
-            switch (mapper) {
-                case 0:
-                    return new MemoryMapper(gb,rom);
-                default:
-                    throw new NotImplementedException($"Mapper type {mapper:X} has not been implemented yet.");
-            }
+            byte mapperId = rom[0x0147];
+            //Check the header checksum here.
+            var mapper = GetMapperObject(gb, mapperId, rom);
+            //Check the header here.
+            return mapper;
         }
     }
 }

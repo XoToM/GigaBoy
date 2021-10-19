@@ -18,7 +18,7 @@ namespace GigaBoy.Components
         public byte DisabledReadData { get; set; } = 0xFF;
         public RAMType Type { get; init; } = RAMType.RAM;
 
-        public RAM(GBInstance gb,ushort capacity) {
+        public RAM(GBInstance gb,int capacity) {
             GB = gb;
             Memory = new byte[capacity];
         }

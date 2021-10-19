@@ -14,6 +14,7 @@ namespace GigaBoy
         public RAM VRam { get; init; }
         public RAM WRam { get; init; }
         public RAM HRam { get; init; }
+        public RAM SRam { get { return MemoryMapper.SRam; } }
         public byte[] Rom { get { return MemoryMapper.RomImage; } set { MemoryMapper.RomImage = value; } }
         public SharpSM83 CPU { get; init; }
         public CPUClock Clock { get; init; }
@@ -38,7 +39,7 @@ namespace GigaBoy
             PPU = new(this);
             CPU = new(this);
             Clock = new(this);
-            MemoryMapper = new MemoryMapper(this,new byte[0x8000]);
+            MemoryMapper = MemoryMapper.GetMapperObject(this,0,new byte[0x8000]);
         }
         public void Log(string data)
         {
