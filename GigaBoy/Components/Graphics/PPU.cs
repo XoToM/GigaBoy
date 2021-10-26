@@ -175,9 +175,11 @@ namespace GigaBoy.Components.Graphics
         }
         public void FrameDone()
         {
-            var dbuffer = displayBuffer;
-            displayBuffer = frameBuffer;
-            frameBuffer = dbuffer;
+            lock (this) {
+                var dbuffer = displayBuffer;
+                displayBuffer = frameBuffer;
+                frameBuffer = dbuffer;
+            }
             Array.Fill(frameBuffer, clearColor);
         }
         public void Tick() {
@@ -210,7 +212,7 @@ namespace GigaBoy.Components.Graphics
                     {
                         if (LY == WY && WindowEnable) yWindow = true;
                         foreach (var s in ScanlineScanner(yWindow)) yield return s;
-                        GB.Log($"Scanline = {LY}");
+                        //GB.Log($"Scanline = {LY}");
                         if (!WindowEnable) yWindow = false;
                         ++LY;
                     }
@@ -219,7 +221,7 @@ namespace GigaBoy.Components.Graphics
                     FrameDone();
                     for (int i = 0; i < 10; i++)
                     {
-                        GB.Log($"VBlank = {LY}");
+                        //GB.Log($"VBlank = {LY}");
                         yield return PPUStatus.VBlank;
                         ++LY;
                     }
@@ -232,18 +234,22 @@ namespace GigaBoy.Components.Graphics
             screen[y, x] = color;
         }
         public Bitmap GetInstantImage() {
-            try
+            lock (this)
             {
-                Span2D<ColorContainer> img = new(displayBuffer, 160, 144);
-                var bmp = new Bitmap(160, 144);
-                DrawBitmap(img, bmp, 0, 0);
-                return bmp;
-            }
-            catch (Exception e) {
-                GB.Error(e.ToString());
-                var b = new Bitmap(1, 1);
-                b.SetPixel(0, 0, Color.Pink);
-                return b;
+                try
+                {
+                    Span2D<ColorContainer> img = new(displayBuffer, 160, 144);
+                    var bmp = new Bitmap(160, 144);
+                    DrawBitmap(img, bmp, 0, 0);
+                    return bmp;
+                }
+                catch (Exception e)
+                {
+                    GB.Error(e.ToString());
+                    var b = new Bitmap(1, 1);
+                    b.SetPixel(0, 0, Color.Pink);
+                    return b;
+                }
             }
         }
         public IEnumerable<PPUStatus> ScanlineScanner(bool yWindow) {

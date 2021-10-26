@@ -43,16 +43,16 @@ namespace GigaBoyTests
         {
             ConcurrentBag<string> results = new();
             //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\", "*.gb"),
-            Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\", "*.gb"),
+            //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\", "*.gb"),
             //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\age_test_roms\", "*.gb"),
-            //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\", "*.gb"),
+            Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\", "*.gb"),
             (string f)=> {
                 try
                 {
                     Console.WriteLine($"Running Test Rom {f}");
                     var gb = new GBInstance(f);
                     gb.Breakpoint += (sender,args) => { gb.Clock.StopRequested = true; };
-                    gb.Clock.AutoBreakpoint = DateTime.Now.AddSeconds(120);
+                    gb.Clock.AutoBreakpoint = DateTime.Now.AddSeconds(32);//usually 120
                     gb.MainLoop();
                     Console.WriteLine($"Rom {f} finished");
                     Console.WriteLine("Registers:");

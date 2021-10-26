@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,8 @@ namespace GigaBoy.Components
         public GBInstance GB { get; init; }
         public bool Running { get; set; } = true;
         public bool Debug { get; set; } = true;
+        public bool PrintOperation { get; set; } = false;
+        public byte LastOpcode { get; protected set; } = 0;
         protected IEnumerator<bool> InstructionProcessor;
         #region Registers
         public byte A { get; set; }
@@ -86,17 +89,27 @@ namespace GigaBoy.Components
             DE = 0x00C1;
             HL = 0x8403;
             F = 0;
+            var abc = (JObject)(JObject.Parse(System.IO.File.ReadAllText(Environment.CurrentDirectory + @"\GigaBoyTests\opcodes.json"))["unprefixed"]);
+            if (abc == null) throw new NullReferenceException();
+            OpcodeDictionary = abc;
         }
-        public void Tick() {
+        public bool TickOnce() {
             if (DelayTicks-- <= 0) {
                 DelayTicks = 3;
-                if (!Running) return;
-                InstructionProcessor.MoveNext();
+                if (!Running) return false;
+                return InstructionProcessor.MoveNext();
             }
+            return false;
         }
+        public void Tick() {
+            TickOnce();
+        }
+        public static JObject OpcodeDictionary { get; set; }
         protected IEnumerable<bool> Processor() {
+            string s;
             while (true) {
                 byte opcode = Fetch();
+                LastOpcode = opcode;
 
                 switch (opcode&0b11000000) {
                     case 0:
@@ -153,7 +166,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 address = (ushort)((data << 8) |Fetch());
                                 yield return false;
-                                Store(address,(byte)(SP & 0x00FF));
+                                Store(address,(byte)(SP & 0x00FF));//Wrong?
                                 yield return false;
                                 Store(++address,(byte)(SP & 0xFF00));
                                 break;
@@ -404,7 +417,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                SP = (ushort)((data << 8) | Fetch());
+                                SP = (ushort)((Fetch() << 8) | data);
                                 break;
                             case 0x32:
                                 yield return false;
@@ -684,7 +697,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)(Fetch() | (data << 8));
+                                address = (ushort)(data | (Fetch() << 8));
                                 if (!Zero)
                                 {
                                     yield return false;
@@ -695,7 +708,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)(Fetch() | (data << 8));
+                                address = (ushort)(data | (Fetch() << 8));
                                 yield return false;
                                 PC = address;
                                 break;
@@ -703,7 +716,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)(Fetch() | (data << 8));
+                                address = (ushort)(data | (Fetch() << 8));
                                 if (!Zero)
                                 {
                                     yield return false;
@@ -762,7 +775,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)(Fetch() | (data << 8));
+                                address = (ushort)(data | (Fetch() << 8));
                                 if (Zero)
                                 {
                                     yield return false;
@@ -939,9 +952,9 @@ namespace GigaBoy.Components
                                 address = (ushort)((Fetch() << 8) | data);
                                 yield return false;
                                 yield return false;
-                                Store(--SP, (byte)(((PC + 3) & 0xFF00) >> 8));
+                                Store(--SP, (byte)(((PC) & 0xFF00) >> 8));
                                 yield return false;
-                                Store(--SP, (byte)((PC + 3) & 0xFF));
+                                Store(--SP, (byte)((PC) & 0xFF));
                                 PC = address;
                                 break;
                             case 0xE:
@@ -1158,7 +1171,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)((data<<8)|Fetch());
+                                address = (ushort)((Fetch() << 8) | data);
                                 yield return false;
                                 Store(address,A);
                                 break;
@@ -1245,7 +1258,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)(Fetch() | (data << 8));
+                                address = (ushort)(data | (Fetch() << 8));
                                 yield return false;
                                 A = Fetch(address);
                                 break;
@@ -1278,6 +1291,46 @@ namespace GigaBoy.Components
                         break;
                     default:
                         throw new NotImplementedException($"Invalid Opcode {opcode:X}");
+                }
+                if (Debug && PrintOperation)
+                {
+                    s = opcode.ToString("X").ToUpper();
+                    if (s.Length < 2) s = "0" + s;
+                    if (s.Length < 2) s = "0" + s;
+                    var obj = ((JObject)OpcodeDictionary["0x" + s]);
+                    s = obj["mnemonic"].ToString();
+                    foreach (JObject operandData in (JArray)obj["operands"]) {
+                        s += " " + operandData["name"].ToString();
+                    }
+                    switch (opcode)
+                    {
+                        case 0x20:
+                        case 0x30:
+                        case 0x18:
+                        case 0x28:
+                        case 0x38:
+                        case 0xC2:
+                        case 0xD2:
+                        case 0xC3:
+                        case 0xCA:
+                        case 0xCB:
+                        case 0xC4:
+                        case 0xD4:
+                        case 0xCC:
+                        case 0xDC:
+                        case 0xCD:
+                        case 0xC0:
+                        case 0xD0:
+                        case 0xC8:
+                        case 0xD8:
+                        case 0xC9:
+                        case 0xD9:
+                            s = s + ' ' + PC.ToString("X");
+                            break;
+                        default:
+                            break;
+                    }
+                    GB.Log(s);
                 }
                 yield return true;
                 if (InterruptMasterEnable && (((int)InterruptEnable & (int)InterruptFlags & 0x1F) != 0)) {

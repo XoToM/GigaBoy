@@ -1,5 +1,6 @@
 ﻿using GigaBoy.Components.Graphics;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace GigaBoy.Components.Mappers
 {
-    public class MemoryMapper : MMIODevice
+    public class MemoryMapper : MMIODevice, IList<byte>      //This entire class (and its subclasses) are a huge mess which i will rewrite later.
     {
         public byte[] RomImage { get; set; }
         public GBInstance GB { get; protected set; }
@@ -16,8 +17,23 @@ namespace GigaBoy.Components.Mappers
         public bool SaveSRam { get; set; } = false;
         public int SRamBankOffset { get; set; } = 0;
         public int RomBankOffset { get; set; } = 0;
+
+        public int Count => ushort.MaxValue + 1;
+
+        public bool IsReadOnly => true;
+
+        public byte this[int index] { get => GetByte((ushort)index); set => SetByte((ushort)index, value); }
+
         public MemoryMapper(GBInstance gb,byte[] romImage,bool battery) {
             RomImage = romImage;
+            if (RomImage.Length < 0x8000)
+            {
+                gb.Log("Rom file is smaller than expected: Padding rom with 0x00 bytes. Real gameboy wouldn't care.");
+                byte[] rom1 = new byte[0x8000];
+                Array.Fill<byte>(rom1, 0);
+                romImage.CopyTo(rom1.AsSpan());
+                RomImage = rom1;
+            }
             GB = gb;
             SaveSRam = battery;
             SRam = new(gb, GetSRamSize()) {Type = RAMType.SRAM };
@@ -41,7 +57,7 @@ namespace GigaBoy.Components.Mappers
         }
         public byte GetByte(ushort address)
         {
-            GB.Log($"Read [{address:X}]");
+            //GB.Log($"Read [{address:X}]");
             if (address < 0x8000) return Read(address);
 
             if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000 + RomBankOffset));
@@ -78,15 +94,16 @@ namespace GigaBoy.Components.Mappers
         }
         public void SetByte(ushort address,byte value)
         {
-            if (address < 0x8000) Write(address,value);
+            //GB.Log($"Write [{address:X}] = {value:X}");
 
-            if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000 + RomBankOffset),value);
-            if (address < 0xC000) SRam.Write((ushort)(address - 0xA000 + SRamBankOffset),value);
-            if (address < 0xE000) GB.WRam.Write((ushort)(address - 0xC000),value);
-            if (address < 0xFE00) GB.WRam.Write((ushort)(address - 0xE000),value);
-            if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
-            if (address == 0xFFFF) GB.CPU.InterruptEnable = (InterruptType)(value&0x1F);
-            if (address >= 0xFF80) GB.HRam.Write((ushort)(address - 0xFF80),value);
+            if (address < 0x8000) Write(address,value);
+            else if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000 + RomBankOffset),value);
+            else if (address < 0xC000) SRam.Write((ushort)(address - 0xA000 + SRamBankOffset),value);
+            else if (address < 0xE000) GB.WRam.Write((ushort)(address - 0xC000),value);
+            else if (address < 0xFE00) GB.WRam.Write((ushort)(address - 0xE000),value);
+            else if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
+            else if (address == 0xFFFF) GB.CPU.InterruptEnable = (InterruptType)(value&0x1F);
+            else if (address >= 0xFF80) GB.HRam.Write((ushort)(address - 0xFF80),value);
 
             switch (address)
             {
@@ -120,20 +137,27 @@ namespace GigaBoy.Components.Mappers
                     return;
             }
         }
-        public byte Read(ushort address)
+        public virtual byte Read(ushort address)
         {
             return DirectRead(address);
         }
-        public byte DirectRead(ushort address)
+        public virtual byte Read(int address)
         {
-            if (address > 0x8000) return 0xFF;
+            return DirectRead(address);
+        }
+        public virtual byte DirectRead(ushort address)
+        {
             return RomImage[address];
         }
-        public void Write(ushort address, byte value)
+        public virtual byte DirectRead(int address)
+        {
+            return RomImage[address];
+        }
+        public virtual void Write(ushort address, byte value)
         {
             DirectWrite(address,value);
         }
-        public void DirectWrite(ushort address, byte value)
+        public virtual void DirectWrite(ushort address, byte value)
         {
             return;
         }
@@ -143,6 +167,12 @@ namespace GigaBoy.Components.Mappers
             {
                 case 0:     //ROM
                     return new MemoryMapper(gb, rom, false);
+                case 1:
+                    return new MBC1(gb, rom, false);
+                case 2:
+                    return new MBC1(gb, rom, false);
+                case 3:
+                    return new MBC1(gb, rom, true);
                 case 8:     //ROM + RAM
                     return new MemoryMapper(gb, rom, false);
                 case 9:     //ROM + RAM + BATTERY
@@ -153,10 +183,11 @@ namespace GigaBoy.Components.Mappers
         }
         public static MemoryMapper GetMemoryMapper(GBInstance gb,string romFilename) {
             byte[] rom = File.ReadAllBytes(romFilename);
-            if (rom.Length < 0x8000) {
+            if (rom.Length < 0x8000)
+            {
                 gb.Log("Rom file is smaller than expected: Padding rom with 0x00 bytes. Real gameboy wouldn't care.");
                 byte[] rom1 = new byte[0x8000];
-                Array.Fill<byte>(rom1,0);
+                Array.Fill<byte>(rom1, 0);
                 rom.CopyTo(rom1.AsSpan());
             }
             byte mapperId = rom[0x0147];
@@ -164,6 +195,63 @@ namespace GigaBoy.Components.Mappers
             var mapper = GetMapperObject(gb, mapperId, rom);
             //Check the header here.
             return mapper;
+        }
+
+        public int IndexOf(byte item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Insert(int index, byte item)
+        {
+            SetByte((ushort)index, item);
+        }
+
+        public void RemoveAt(int index)
+        {
+            SetByte((ushort)index, 0);
+        }
+
+        public void Add(byte item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Clear()
+        {
+            throw new NotImplementedException("Cannot clear a memory map.");
+        }
+
+        public bool Contains(byte item)
+        {
+            foreach (byte b in this) {
+                if (b == item) return true;
+            }
+            return false;
+        }
+
+        public void CopyTo(byte[] array, int arrayIndex)
+        {
+            for (int i = 0; i <= ushort.MaxValue; i++) {
+                array[arrayIndex + i] = GetByte((ushort)i);
+            }
+        }
+
+        public bool Remove(byte item)
+        {
+            throw new NotImplementedException("Cannot remove bytes from ROM");
+        }
+
+        public IEnumerator<byte> GetEnumerator()
+        {
+            for (int i = 0; i <= ushort.MaxValue; i++) {
+                yield return GetByte((ushort)i);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
         }
     }
 }

@@ -39,7 +39,7 @@ namespace GigaBoy
             PPU = new(this);
             CPU = new(this);
             Clock = new(this);
-            MemoryMapper = MemoryMapper.GetMapperObject(this,0,new byte[0x8000]);
+            MemoryMapper = MemoryMapper.GetMapperObject(this, 0, new byte[0x8000]);
         }
         public void Log(string data)
         {
@@ -51,13 +51,31 @@ namespace GigaBoy
             throw new Exception(data);
         }
         public void MainLoop() {
+            CPU.Running = true;
             Clock.RunClock();
+        }
+        public void Start()
+        {
+            PPU.Enabled = true;
+            Clock.StopRequested = false;
+            Clock.AutoBreakpoint = DateTime.MinValue;
+            Log("DMG instance started");
+        }
+        public void Step() {
+            CPU.Running = true;
+            Clock.Step();
         }
         internal void BreakpointHit() {
             EventHandler temp = Breakpoint;
             if (temp != null)
             {
                 temp.Invoke(null,new EventArgs());
+            }
+        }
+        public void Stop(bool block=false) {
+            Clock.StopRequested = true;
+            if (block) {
+                while (Clock.StopRequested) { }
             }
         }
     }

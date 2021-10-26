@@ -24,16 +24,17 @@ namespace GigaBoy.Components
         }
         public byte Read(ushort address)
         {
-            if(!Available()) return DisabledReadData;
-            return DirectRead(address);
+            if(Available() && Reading) return DirectRead(address);
+            return DisabledReadData;
         }
         public bool Available() {
             //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
             //TODO: Uncomment this when DMA is finished.
             //if(Type!=RAMType.HRAM&&DMA.Active)return false;
-            switch (Type) {
-                case RAMType.RAM:
+            switch (Type)
+            {
                 case RAMType.SRAM:
+                case RAMType.RAM:
                 case RAMType.HRAM:
                     return true;
                 case RAMType.OAM:
@@ -62,8 +63,7 @@ namespace GigaBoy.Components
 
         public void Write(ushort address, byte value)
         {
-            if (!Available()) return;
-            DirectWrite(address, value);
+            if (Available() && Writing) DirectWrite(address, value);
         }
         public void DirectWrite(ushort address, byte value)
         {

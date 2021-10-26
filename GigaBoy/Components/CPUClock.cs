@@ -19,7 +19,10 @@ namespace GigaBoy.Components
             StopRequested = false;
             bool doAutoBreakpoint = AutoBreakpoint != DateTime.MinValue;
             while (true) {
-                if (StopRequested) return;
+                if (StopRequested) {
+                    StopRequested = false;
+                    return; 
+                }
                 
                 var durationTicks = Math.Round(0.00000023841857910156 * Stopwatch.Frequency);
                 var sw = Stopwatch.StartNew();
@@ -33,6 +36,12 @@ namespace GigaBoy.Components
                     }
                 }
             }
+        }
+        public void Step()
+        {
+            do {
+                GB.PPU.Tick();
+            } while (!GB.CPU.TickOnce());
         }
     }
 }

@@ -16,9 +16,24 @@ namespace GigaboyDemo
         public const int BORDER_WIDTH = 10;
         public const int BORDER_HEIGHT = 10;
         public TilemapViewer TilemapViewer;
+        public RegisterViewer RegisterViewer;
         public TileDataViewer TileDataViewer;
+        public Debugger Debugger;
+        public string? setRomFile = null;
         public GBInstance GB { get; protected set; }
+        private bool _gbPaused = false;
+
+        public bool GBPaused
+        {
+            get { return _gbPaused; }
+            set { 
+                _gbPaused = value;
+                if (value) GB.Stop();
+            }
+        }
+
         private int _gameImageScale;
+        private Task? gbProcessor = null;
 
         public int GameWindowScale
         {
@@ -46,11 +61,15 @@ namespace GigaboyDemo
             TilemapViewer.Show();
             TileDataViewer = new();
             TileDataViewer.Show();
+            RegisterViewer = new(GB, this);
+            RegisterViewer.Show();
+            Debugger = new(GB);
+            Debugger.Show();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Random rng = new();
+            /*Random rng = new();
             //for (ushort a = 0x9800; a < 0xA000; a++){
                 for (ushort a = 0x8000; a < 0xA000; a++) {
                 //GB.VRam.DirectWrite(a,(byte)(rng.Next()&0xFF&1));
@@ -63,10 +82,10 @@ namespace GigaboyDemo
             for (ushort a = 0x8010; a < 0x8020; a++)
             {
                 GB.VRam.DirectWrite(a, 0xFF);
-            }
+            }//*/
             GB.PPU.Enabled = true;
             //GB.PPU.WindowEnable = true;
-            GB.PPU.WY = 64;
+            //GB.PPU.WY = 64;
             GameWindowScale = 3;//Draws the image
             MLoop();
         }
@@ -80,16 +99,92 @@ namespace GigaboyDemo
         public async void MLoop()
         {
             while (true) {
-                for (int i = 0; i < 16; i++) {
-                    for(int j=0;j<128;j++) GB.PPU.Tick();
-                    await Task.Delay(1);
+                
+                
+                await Task.Delay(15);
+
+                if (setRomFile is not null)
+                {
+                    TilemapViewer.Close();
+                    TileDataViewer.Close();
+                    RegisterViewer.Close();
+                    GB.Stop();
+                    if(gbProcessor is not null) await gbProcessor;
+                    
+                    GB = new GBInstance(setRomFile);
+                    GB.CPU.Debug = true;
+                    //GB.CPU.PrintOperation = true;
+                    GB.Start();
+                    GBPaused = true;
+
+                    TilemapViewer = new();
+                    TilemapViewer.Show();
+                    TileDataViewer = new();
+                    TileDataViewer.Show();
+                    RegisterViewer = new(GB, this);
+                    RegisterViewer.Show();
+                    Debugger = new(GB);
+                    Debugger.Show();
+                    setRomFile = null;
+                    gbProcessor = Task.Run(runGB);
                 }
-                //GB.PPU.WX++;
-                //GB.PPU.SCX++;
+
+                if (gbProcessor is null) continue;
+
                 Invalidate();
                 TilemapViewer.tm.Redraw();
                 TileDataViewer.tv.Redraw();
+                RegisterViewer.RefreshRegisters();
             }
+        }
+        private async Task runGB()
+        {
+            try
+            {
+                while (true)
+                {
+                    if(!GBPaused)GB.MainLoop();
+                    await Task.Delay(10);
+                }
+            }
+            catch (Exception e)
+            {
+                GB.Log($"Error in opcode {GB.CPU.LastOpcode:X}        PC = {GB.CPU.PC:X}");
+                GB.Log(e.ToString());
+                MessageBox.Show(e.ToString(), e.GetType().Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+        public void StepGB()
+        {
+            if (!GBPaused) return;
+            try
+            {
+                GB.Step();
+            }
+            catch (Exception e)
+            {
+                GB.Log($"Error in opcode {GB.CPU.LastOpcode:X}        PC = {GB.CPU.PC:X}");
+                GB.Log(e.ToString());
+                MessageBox.Show(e.ToString(), e.GetType().Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+
+        private void Form1_DragDrop(object sender, DragEventArgs e)
+        {
+            string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && files.Any()) {
+                setRomFile = files.First();
+            }
+        }
+
+        private void Form1_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+            else
+                e.Effect = DragDropEffects.None;
         }
     }
 }
