@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 namespace GigaBoy.Components.Graphics
 {
     public enum PPUStatus : sbyte {HBlank,VBlank,OAMSearch,GenerateFrame}
+    /// <summary>
+    /// This class is used for emulating the Gameboy's Pixel Processing Unit. Its methods and properties are not thread-safe, however you can access all of its properties and methods in a thread-safe way by locking the parent GBInstance object first. Some methods in this class can also be safely accessed by locking this object.
+    /// This PPU is double-buffered, while the real gameboy's PPU is not. It is possible to remove the need for this class to be double-buffered, however doing so might cause some issues with this class being thread-safe, so I decided to go with the double-buffered approach. I might add a setting to change this later.
+    /// /// </summary>
     public class PPU : ClockBoundDevice
     {
         public GBInstance GB { get; init; }
@@ -20,6 +24,11 @@ namespace GigaBoy.Components.Graphics
         protected ColorContainer[] frameBuffer = new ColorContainer[160 * 144];
         protected ColorContainer[] displayBuffer = new ColorContainer[160 * 144];
         public ColorContainer clearColor { get; set; }
+        /// <summary>
+        /// Invoked when the PPU is finished with rendering a frame. This event is invoked by the emulation thread while GB object is locked, so all children objects of the GBInstance object can be accessed in a thread-safe way without locking.
+        /// This also means that if the event handlers bound to this event take too long the emulator will have to wait for them to finish, which can cause lag.
+        /// </summary>
+        public event EventHandler? FrameRendered;
 
         #region LcdcStat
         /// <summary>
@@ -170,18 +179,26 @@ namespace GigaBoy.Components.Graphics
             FIFO = new(this);
         }
         #region ScanlineRendering
+        /// <summary>
+        /// Returns the currently visible frame. The resulting span should only be accessed while either the PPU or the GBInstance objects are locked
+        /// </summary>
+        /// <returns>Currently visible frame</returns>
         public Span2D<ColorContainer> GetFrame() {
             return new Span2D<ColorContainer>(frameBuffer,160,144);
         }
-        public void FrameDone()
+        protected void FrameDone()
         {
             lock (this) {
                 var dbuffer = displayBuffer;
                 displayBuffer = frameBuffer;
                 frameBuffer = dbuffer;
             }
+            FrameRendered?.Invoke(this,EventArgs.Empty);
             Array.Fill(frameBuffer, clearColor);
         }
+        /// <summary>
+        /// This method executes one clock cycle of the PPU. It is not thread-safe, and it should not be accessed when the PPU object is locked, as it can lead to deadlocks.
+        /// </summary>
         public void Tick() {
             try
             {
@@ -196,7 +213,7 @@ namespace GigaBoy.Components.Graphics
                 GB.Error(e.ToString());
             }
         }
-        public IEnumerable<PPUStatus> Scanner() {
+        protected IEnumerable<PPUStatus> Scanner() {
             while (true)
             {
                 Array.Fill(frameBuffer, clearColor);
@@ -233,6 +250,10 @@ namespace GigaBoy.Components.Graphics
             var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
             screen[y, x] = color;
         }
+        /// <summary>
+        /// Thread-safe method which returns the currently displayed frame as a System.Drawing.Bitmap.
+        /// </summary>
+        /// <returns>Current frame.</returns>
         public Bitmap GetInstantImage() {
             lock (this)
             {

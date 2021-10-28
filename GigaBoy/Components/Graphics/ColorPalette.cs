@@ -11,13 +11,15 @@ namespace GigaBoy.Components.Graphics
     /// <summary>
     /// ColorContainer stores System.Drawing.Color as an int, so it can be easily used with spans, and stackalloc.
     /// </summary>
-    public struct ColorContainer
+    public readonly struct ColorContainer
     {
         private readonly int color;
         public Color Color { get { return Color.FromArgb(color); } init { color = value.ToArgb(); } }
+        public int ARGB { get { return color; } init { color = value; } }
         public ColorContainer(Color color) {
             this.color = color.ToArgb();
         }
+
         public static implicit operator Color(ColorContainer container) { return container.Color; }
         public static implicit operator ColorContainer(Color color) { return new ColorContainer(color); }
     }

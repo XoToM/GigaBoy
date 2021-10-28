@@ -19,6 +19,7 @@ namespace GigaBoy
         public SharpSM83 CPU { get; init; }
         public CPUClock Clock { get; init; }
         public MemoryMapper MemoryMapper { get; init; }
+        public bool Running { get => Clock.Running; }
         public GBInstance(string filename)
         {
             LastInstance = this;
@@ -40,6 +41,11 @@ namespace GigaBoy
             CPU = new(this);
             Clock = new(this);
             MemoryMapper = MemoryMapper.GetMapperObject(this, 0, new byte[0x8000]);
+
+            PPU.Enabled = true;
+            Clock.StopRequested = false;
+            Clock.AutoBreakpoint = DateTime.MinValue;
+            Log("DMG instance initialised");
         }
         public void Log(string data)
         {
@@ -54,28 +60,27 @@ namespace GigaBoy
             CPU.Running = true;
             Clock.RunClock();
         }
-        public void Start()
-        {
-            PPU.Enabled = true;
-            Clock.StopRequested = false;
-            Clock.AutoBreakpoint = DateTime.MinValue;
-            Log("DMG instance started");
-        }
         public void Step() {
             CPU.Running = true;
             Clock.Step();
         }
         internal void BreakpointHit() {
-            EventHandler temp = Breakpoint;
+            EventHandler? temp = Breakpoint;
             if (temp != null)
             {
                 temp.Invoke(null,new EventArgs());
             }
         }
+        /// <summary>
+        /// Stops the emulator. This method should be thread-safe.
+        /// </summary>
+        /// <param name="block">If true, this method will block until the emulator stops, otherwise it will return immediately. 
+        /// This should never be true when this method is called by the same thread the emulator runs on.</param>
         public void Stop(bool block=false) {
+            if (!Clock.Running) return;
             Clock.StopRequested = true;
             if (block) {
-                while (Clock.StopRequested) { }
+                while (!Clock.Running) { }
             }
         }
     }

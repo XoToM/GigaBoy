@@ -114,7 +114,6 @@ namespace GigaboyDemo
                     GB = new GBInstance(setRomFile);
                     GB.CPU.Debug = true;
                     //GB.CPU.PrintOperation = true;
-                    GB.Start();
                     GBPaused = true;
 
                     TilemapViewer = new();

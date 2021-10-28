@@ -14,34 +14,66 @@ namespace GigaBoy.Components
             GB = gb;
         }
         public bool StopRequested { get; set; }
+        public bool Running { get; protected set; } = false;
         public DateTime AutoBreakpoint { get; set; } = DateTime.MinValue;
         public void RunClock() {
-            StopRequested = false;
+            lock (GB)
+            {
+                StopRequested = false;
+                Running = true;
+            }
             bool doAutoBreakpoint = AutoBreakpoint != DateTime.MinValue;
-            while (true) {
-                if (StopRequested) {
-                    StopRequested = false;
-                    return; 
-                }
-                
-                var durationTicks = Math.Round(0.00000023841857910156 * Stopwatch.Frequency);
-                var sw = Stopwatch.StartNew();
-                while (sw.ElapsedTicks < durationTicks){ }
-                GB.PPU.Tick();
-                GB.CPU.Tick();
-                if (doAutoBreakpoint)
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                while (true)
                 {
-                    if (AutoBreakpoint < DateTime.Now) {
-                        GB.BreakpointHit();
+                    var durationTicks = Math.Round(0.00000023841857910156 * Stopwatch.Frequency);
+                    sw.Restart();
+                    while (sw.ElapsedTicks < durationTicks) { }
+                    lock (GB)
+                    {
+                        GB.PPU.Tick();
+                        GB.CPU.Tick();
+                        if (doAutoBreakpoint)
+                        {
+                            if (AutoBreakpoint < DateTime.Now)
+                            {
+                                GB.BreakpointHit();
+                            }
+                        }
+
+                        if (StopRequested)
+                        {
+                            StopRequested = false;
+                            return;
+                        }
                     }
                 }
+            }
+            finally {
+                lock(GB) Running = false;
             }
         }
         public void Step()
         {
-            do {
-                GB.PPU.Tick();
-            } while (!GB.CPU.TickOnce());
+            lock (GB)
+            {
+                if (Running) return;
+                Running = true;
+                try
+                {
+                    do
+                    {
+                        GB.PPU.Tick();
+                    } while (!GB.CPU.TickOnce());
+
+                }
+                finally
+                {
+                    Running = false;
+                }
+            }
         }
     }
 }
