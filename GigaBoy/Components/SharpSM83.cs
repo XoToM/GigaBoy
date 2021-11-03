@@ -9,11 +9,13 @@ namespace GigaBoy.Components
 {
     [Flags]
     public enum InterruptType : byte { VBlank=1,Stat=2,Timer=4,Serial=8,Joypad=16 }
+    public enum CPUMode : byte { Stopped,Running,Halted,LowPowerStop }
     public class SharpSM83 : ClockBoundDevice
     {
         public int DelayTicks { get; protected set; } = 0;
         public GBInstance GB { get; init; }
         public bool Running { get; set; } = true;
+        public CPUMode CPUMode { get; protected set; } = CPUMode.Stopped;
         public bool Debug { get; set; } = true;
         public bool PrintOperation { get; set; } = false;
         public byte LastOpcode { get; protected set; } = 0;
@@ -89,14 +91,18 @@ namespace GigaBoy.Components
             DE = 0x00C1;
             HL = 0x8403;
             F = 0;
-            var abc = (JObject)(JObject.Parse(System.IO.File.ReadAllText(Environment.CurrentDirectory + @"\GigaBoyTests\opcodes.json"))["unprefixed"]);
+            var abc = (JObject?)JObject.Parse(System.IO.File.ReadAllText(Environment.CurrentDirectory + @"\GigaBoyTests\opcodes.json"))["unprefixed"];
             if (abc == null) throw new NullReferenceException();
             OpcodeDictionary = abc;
         }
         public bool TickOnce() {
-            if (DelayTicks-- <= 0) {
+            if (DelayTicks-- <= 0)
+            {
                 DelayTicks = 3;
-                if (!Running) return false;
+                if (!Running) {
+                    CPUMode = CPUMode.Stopped;
+                    return false; 
+                }
                 return InstructionProcessor.MoveNext();
             }
             return false;
@@ -104,10 +110,11 @@ namespace GigaBoy.Components
         public void Tick() {
             TickOnce();
         }
-        public static JObject OpcodeDictionary { get; set; }
+        public static JObject? OpcodeDictionary { get; set; }
         protected IEnumerable<bool> Processor() {
             string s;
             while (true) {
+                CPUMode = CPUMode.Running;
                 byte opcode = Fetch();
                 LastOpcode = opcode;
 
@@ -158,7 +165,6 @@ namespace GigaBoy.Components
                                 SubFlag = false;
                                 Carry = idata != 0;
                                 break;
-
 
                             case 8:
                                 yield return false;
@@ -213,7 +219,7 @@ namespace GigaBoy.Components
 
 
                             case 0x10:
-                                Running = false;
+                                CPUMode = CPUMode.LowPowerStop;
                                 throw new NotImplementedException("STOP instruction has not been implemented yet.");
                                 break;
                             case 0x11:
@@ -1048,6 +1054,7 @@ namespace GigaBoy.Components
 
                             case 0x18:
                                 yield return false;
+                                GB.Log($"Carry status: {Carry}");
                                 if (!Carry) break;
                                 yield return false;
                                 data = Fetch(SP++);
@@ -1294,43 +1301,33 @@ namespace GigaBoy.Components
                 }
                 if (Debug && PrintOperation)
                 {
-                    s = opcode.ToString("X").ToUpper();
-                    if (s.Length < 2) s = "0" + s;
-                    if (s.Length < 2) s = "0" + s;
-                    var obj = ((JObject)OpcodeDictionary["0x" + s]);
-                    s = obj["mnemonic"].ToString();
-                    foreach (JObject operandData in (JArray)obj["operands"]) {
-                        s += " " + operandData["name"].ToString();
+                    if (OpcodeDictionary is not null)//This mess of if statements is not pretty, but visual studio complains a lot here, and I had to clear up my warnings list. 
+                    {//I could also have used #nullable disabled to disable these warnings, but this could also lead to me missing NullReferenceExceptions so I decided to go with this approach. I will most likely delete this debug code from the final build anyway, so this doesn't really matter anyway.
+                        s = opcode.ToString("X").ToUpper();
+                        if (s.Length < 2) s = "0" + s;
+                        if (s.Length < 2) s = "0" + s;
+                        var obj = (JObject?)OpcodeDictionary["0x" + s];
+                        if (obj is not null)
+                        {
+                            var mnem = obj["mnemonic"];
+                            if (mnem is not null)
+                            {
+                                s = mnem.ToString();
+                                var operandsList = obj["operands"];
+                                if (operandsList is not null)
+                                {
+                                    foreach (JObject operandData in (JArray)operandsList)
+                                    {
+                                        var opcodeName = operandData["name"];
+                                        if(opcodeName is not null)
+                                            s += " " + opcodeName.ToString();
+                                    }
+
+                                    GB.Log('[' + PC.ToString("X") + ']' + ' ' + s);
+                                }
+                            }
+                        }
                     }
-                    switch (opcode)
-                    {
-                        case 0x20:
-                        case 0x30:
-                        case 0x18:
-                        case 0x28:
-                        case 0x38:
-                        case 0xC2:
-                        case 0xD2:
-                        case 0xC3:
-                        case 0xCA:
-                        case 0xCB:
-                        case 0xC4:
-                        case 0xD4:
-                        case 0xCC:
-                        case 0xDC:
-                        case 0xCD:
-                        case 0xC0:
-                        case 0xD0:
-                        case 0xC8:
-                        case 0xD8:
-                        case 0xC9:
-                        case 0xD9:
-                            s = s + ' ' + PC.ToString("X");
-                            break;
-                        default:
-                            break;
-                    }
-                    GB.Log(s);
                 }
                 yield return true;
                 if (InterruptMasterEnable && (((int)InterruptEnable & (int)InterruptFlags & 0x1F) != 0)) {

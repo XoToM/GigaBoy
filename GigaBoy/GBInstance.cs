@@ -3,6 +3,7 @@ using System.Diagnostics;
 using GigaBoy.Components.Graphics;
 using GigaBoy.Components;
 using GigaBoy.Components.Mappers;
+using System.Collections.Generic;
 
 namespace GigaBoy
 {
@@ -20,6 +21,7 @@ namespace GigaBoy
         public CPUClock Clock { get; init; }
         public MemoryMapper MemoryMapper { get; init; }
         public bool Running { get => Clock.Running; }
+        public bool DebugLogging { get; set; } = false;
         public GBInstance(string filename)
         {
             LastInstance = this;
@@ -47,18 +49,51 @@ namespace GigaBoy
             Clock.AutoBreakpoint = DateTime.MinValue;
             Log("DMG instance initialised");
         }
+        private  bool BacklogOnlyLogging = true;
+        private const int BACKLOG_MAX_SIZE = 500;
+        private static Queue<string> LogBacklog = new(BACKLOG_MAX_SIZE);
         public void Log(string data)
         {
-            Debug.WriteLine(data);
+            if (DebugLogging) {
+                if (!BacklogOnlyLogging)
+                {
+                    Debug.WriteLine(data);
+                    return;
+                }
+                if (LogBacklog.Count == BACKLOG_MAX_SIZE) LogBacklog.Dequeue();
+                LogBacklog.Enqueue(data);
+            }
         }
         public void Error(string data)
         {
-            Debug.WriteLine(data);
-            throw new Exception(data);
+            Error(new Exception(data));
+        }
+        public void Error(Exception e)
+        {
+            Clock.StopRequested = true;
+            CPU.Running = false;
+            PPU.Enabled = false;
+            Debug.WriteLine("  ---  Emulation Exception  ---  ");
+            if (BacklogOnlyLogging)
+            {
+                Debug.WriteLine("   --  Backlog  --");
+                while (LogBacklog.Count != 0) Debug.WriteLine(LogBacklog.Dequeue());
+                LogBacklog.Clear();
+                Debug.WriteLine("\n");
+            }
+            Debug.WriteLine("   --  " + e.GetType().Name+"  --");
+            Debug.WriteLine(e.Message);
+            throw e;
         }
         public void MainLoop() {
-            CPU.Running = true;
-            Clock.RunClock();
+            try
+            {
+                CPU.Running = true;
+                Clock.RunClock();
+            }
+            catch (Exception e) {
+                Error(e);
+            }
         }
         public void Step() {
             CPU.Running = true;

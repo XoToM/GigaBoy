@@ -1,0 +1,73 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GigaBoy_WPF.Windows"
+        xmlns:components="clr-namespace:GigaBoy_WPF.Components"
+        xmlns:hexControl="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
+        xmlns:Core="clr-namespace:WpfHexaEditor.Core;assembly=WPFHexaEditor" x:Class="GigaBoy_WPF.Windows.DebuggerWindow"
+        mc:Ignorable="d"
+        Title="DebuggerWindow" Height="450" Width="800" Loaded="Window_Loaded">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="5"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="5"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Column="3" Grid.Row="1" Grid.RowSpan="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <components:HexRegisterView Grid.Column="1" Grid.Row="0" GBRegisterName="AF" GBRegisterType="AF" />
+            <components:HexRegisterView Grid.Column="1" Grid.Row="1" GBRegisterName="BC" GBRegisterType="BC" />
+            <components:HexRegisterView Grid.Column="1" Grid.Row="2" GBRegisterName="DE" GBRegisterType="DE" />
+            <components:HexRegisterView Grid.Column="1" Grid.Row="3" GBRegisterName="HL" GBRegisterType="HL" />
+            <components:HexRegisterView Grid.Column="1" Grid.Row="4" GBRegisterName="PC" GBRegisterType="PC" />
+            <components:HexRegisterView Grid.Column="1" Grid.Row="5" GBRegisterName="SP" GBRegisterType="SP" />
+        </Grid>
+        <hexControl:HexEditor x:Name="HexViewerMain" Width="auto" Height="auto" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" AllowCustomBackgroundBlock="False" AllowAutoHighLightSelectionByte="False" ApplicationName="GigaBoy Memory Viewer" ReadOnlyMode="True" VisualCaretMode="Overwrite" VisualByteAdressLength="2" ShowByteToolTip="True">
+            <!--<hexControl:HexEditor.CustomBackgroundBlockItems>
+                <Core:CustomBackgroundBlock Color="#FFFFCACA" Description="ROM0" Length="16384"/>
+                <Core:CustomBackgroundBlock Color="#FFFFAEAE" Description="ROMX" Length="16384" StartOffset="16384"/>
+                <Core:CustomBackgroundBlock Color="#FFAEE6FF" Description="VRAM" Length="8192" StartOffset="32768"/>
+                <Core:CustomBackgroundBlock Description="SRAM" Length="8192" StartOffset="40960" Color="#FFB7FF8E"/>
+                <Core:CustomBackgroundBlock Color="#FFFAFFA1" Description="WRAM" Length="8192" StartOffset="49152"/>
+                <Core:CustomBackgroundBlock Color="#FF999999" Description="EchoRAM" Length="7680" StartOffset="57344"/>
+            </hexControl:HexEditor.CustomBackgroundBlockItems>-->
+        </hexControl:HexEditor>
+        <Grid Grid.Row="2" Grid.Column="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+            <Button Grid.Column="0" Grid.Row="0" Content="Start" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Start" Padding="7 3"/>
+            <Button Grid.Column="1" Grid.Row="0" Content="Stop" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Stop" Padding="7 3"/>
+            <Button Grid.Column="0" Grid.Row="1" Content="Restart" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Restart" Padding="7 3"/>
+            <Button Grid.Column="1" Grid.Row="1" Content="Crash" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Crash" Padding="7 3"/>
+        </Grid>
+    </Grid>
+</Window>

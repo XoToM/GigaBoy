@@ -60,7 +60,7 @@ namespace GigaBoy.Components.Mappers
             //GB.Log($"Read [{address:X}]");
             if (address < 0x8000) return Read(address);
 
-            if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000 + RomBankOffset));
+            if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000));
             if (address < 0xC000) return SRam.Read((ushort)(address - 0xA000 + SRamBankOffset));
             if (address < 0xE000) return GB.WRam.Read((ushort)(address - 0xC000));
             if (address < 0xFE00) return GB.WRam.Read((ushort)(address - 0xE000));
@@ -97,7 +97,7 @@ namespace GigaBoy.Components.Mappers
             //GB.Log($"Write [{address:X}] = {value:X}");
 
             if (address < 0x8000) Write(address,value);
-            else if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000 + RomBankOffset),value);
+            else if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000),value);
             else if (address < 0xC000) SRam.Write((ushort)(address - 0xA000 + SRamBankOffset),value);
             else if (address < 0xE000) GB.WRam.Write((ushort)(address - 0xC000),value);
             else if (address < 0xFE00) GB.WRam.Write((ushort)(address - 0xE000),value);
@@ -252,6 +252,9 @@ namespace GigaBoy.Components.Mappers
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
+        }
+        public static explicit operator Stream(MemoryMapper mapper) {
+            return new MemoryMappedStream(mapper);
         }
     }
 }

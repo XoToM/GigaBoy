@@ -1,34 +1,67 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
+using System.Windows;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using GigaBoy;
 using GigaBoy.Components;
 using GigaBoy.Components.Graphics;
+using System.Windows.Input;
+using GigaBoy_WPF.Components;
 
 namespace GigaBoy_WPF
 {
     public static class Emulation       //This class connects the UI and the emulator together, and provides helper methods for things such as rendering.
     {
+        public static ICommand EmulatorControlCommand { get; private set; } = new EmulatorCommandRunner();
         private static GBInstance? _gBInstance;
         private static Task? _gbRunner;
 
         public static GBInstance? GB
         {
             get { return _gBInstance; }
-            set { _gBInstance = value; GigaboyRefresh?.Invoke(null, EventArgs.Empty); }
+            set { 
+                _gBInstance = value;
+                if (value is not null)
+                {
+                    if (GBArgs is null)
+                    {
+                        GBArgs = new(value);
+                    }
+                    else
+                    {
+                        GBArgs.GB = value;
+                    }
+                }
+                else {
+                    GBArgs = null;
+                }
+                GigaboyRefresh?.Invoke(null, EventArgs.Empty); 
+            }
         }
+        public static gbEventArgs? GBArgs { get; private set; } = null;
+        public class gbEventArgs : EventArgs {
+            public GBInstance GB { get; protected internal set; }
+            public gbEventArgs(GBInstance gb) {
+                GB = gb;
+            }
+        }
+
         public static string? RomFilePath { get; private set; }
         public static WriteableBitmap VisibleImage { get; private set; } = new(160,144,96,96,System.Windows.Media.PixelFormats.Bgra32,null);
 
 
         public static event EventHandler? GigaboyRefresh;
-        public static event EventHandler? GBFrameReady;
+        /// <summary>
+        /// This event is invoked when the emulator finishes drawing a frame. It is called from the UI thread, and it locks the GBInstance object, so all of its members can be safely accessed inside the event handler.
+        /// </summary>
+        public static event EventHandler<gbEventArgs>? GBFrameReady;
 
-        public static void Reset(string? romPath) {
+        public static void Restart(string? romPath) {
             Stop();
             RomFilePath = romPath;
             if (romPath is not null)
@@ -39,35 +72,67 @@ namespace GigaBoy_WPF
                 GB = new GBInstance();
             }
             GB.CPU.Debug = true;
+            GB.CPU.PrintOperation = true;   //Warning: Setting this to true defenestrates performance. Please only enable this while debugging, and only with hard to fix bugs.
+            GB.DebugLogging = true;
+            GB.PPU.FrameRendered += OnFrame;
             Start();
         }
         public static void Start() {
             //Prepare and start the thread which will run the mainLoop() method.
-            if (GB is null ||_gbRunner is null|| GB.Running) return;
+            if (GB is null ||_gbRunner is not null|| GB.Running) return;
             _gbRunner = Task.Run(runMainLoop);
         }
         private static void runMainLoop()
-        {//This should be ran on a separate thread
+        {
+            //This should be ran on a separate thread
             //Call GB.MainLoop() here once. If it returns we should notify the UI thread, and return.
-            GigaboyRefresh?.Invoke(null, EventArgs.Empty);
-            if (GB is not null) GB.MainLoop();
-            GigaboyRefresh?.Invoke(null, EventArgs.Empty);
+            Debug.WriteLine("Emulator Start");
+            MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
+            try
+            {
+                if (GB is not null) GB.MainLoop();
+            }
+            catch (Exception e) {
+                string msg = $"Emulation Exception ({e.GetType().Name}): {e}";
+                if (MainWindow.Main is not null)  //For some reason Environment.Exit doesn't instantly close the process, and the emulator continues to run in the background for a little bit, so I had to implement  null check here.
+                {
+                    MessageBox.Show(msg, "Emulation Exception", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.None);
+                }
+                else {
+                    Environment.Exit(0);
+                }
+                Debug.WriteLine(msg);
+                _gbRunner = null;
+                GB = null;
+            }
+            MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
+            Debug.WriteLine("Emulator Exit");
         }
         public static void Stop() {
             if (GB is not null && _gbRunner is not null && GB.Running)
             {
-                GB.Stop();
-                _gbRunner.Wait();
+                GB.Stop(true);
             }
+            _gbRunner = null;
+            Render();
+        }
+        private static void OnFrame(object? sender,EventArgs e) {
+            VisibleImage.Dispatcher.InvokeAsync(Render);
         }
 
         public static void Render() {
-            if (GB is null) return;
-            lock (GB.PPU)
+            if (GB is null) {
+                GBArgs = null;//This should never be executed, as Render should only be called by the GB.PPU.FrameFinished event, but Visual Studio complains a lot when nullables are on, and turning them off might result in unusual bugs. Doing these little workarounds is much safer anyway, since it might fix some weird bugs that might or might not have occured without them.
+                return; 
+            }
+            if (GBArgs is null) GBArgs = new gbEventArgs(GB);   //This if statement condition should never be true, but Visual Studio complains if I don't check GBArgs for null, so I added a fix in case GBArgs somehow is null here.
+
+            //Debug.WriteLine("Frame Update");
+            lock (GB)
             {
                 DrawGB(VisibleImage, GB.PPU.GetFrame(), 0, 0);
+                GBFrameReady?.Invoke(null, GBArgs);
             }
-            GBFrameReady?.Invoke(null,EventArgs.Empty);
         }
 
         public static void DrawGB(WriteableBitmap bitmap, Span2D<ColorContainer> image, int x, int y) {
@@ -77,17 +142,18 @@ namespace GigaBoy_WPF
             {
                 unsafe
                 {
-                    
-                    Span2D<int> data = new Span2D<int>(new Span<int>((void*)bitmap.BackBuffer, bitmap.BackBufferStride * bitmap.PixelHeight), bitmap.BackBufferStride, bitmap.PixelHeight);
+                    var stride = bitmap.BackBufferStride/sizeof(int);
+                    Span2D<int> data = new Span2D<int>(new Span<int>((void*)bitmap.BackBuffer, stride * bitmap.PixelHeight), stride, bitmap.PixelHeight);
                     for (int v = 0; v < image.Height; v++)
                     {
                         for (int u = 0; u < image.Width; u++)
                         {
-                            data[v + y, u + x] = image[v, u].ARGB;
+                            var col = image[v, u].ARGB;
+                            data[v + y, u + x] = col;
                         }
                     }
                 }
-                bitmap.AddDirtyRect(new System.Windows.Int32Rect(x,y,image.Width,image.Height));
+                bitmap.AddDirtyRect(new Int32Rect(x,y,image.Width,image.Height));
             }
             finally {
                 bitmap.Unlock();
