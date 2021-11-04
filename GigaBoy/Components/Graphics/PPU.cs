@@ -184,7 +184,7 @@ namespace GigaBoy.Components.Graphics
         /// </summary>
         /// <returns>Currently visible frame</returns>
         public Span2D<ColorContainer> GetFrame() {
-            return new Span2D<ColorContainer>(frameBuffer,160,144);
+            return new Span2D<ColorContainer>(displayBuffer,160,144);
         }
         protected void FrameDone()
         {

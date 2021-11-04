@@ -86,6 +86,7 @@ namespace GigaBoy_WPF
         private static void GB_Breakpoint(object? sender, EventArgs e)
         {
             MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
+            Debug.WriteLine("Breakpoint Hit");
         }
 
         public static void Start() {

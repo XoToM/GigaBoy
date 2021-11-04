@@ -101,7 +101,7 @@ namespace GigaBoy
             Clock.Step();
         }
         internal void BreakpointHit() {
-            Debug.WriteLine("Breakpoint Hit!");
+            //Debug.WriteLine("Breakpoint Hit!");
             EventHandler? temp = Breakpoint;
             if (temp != null)
             {

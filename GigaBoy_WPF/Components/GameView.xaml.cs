@@ -24,18 +24,28 @@ namespace GigaBoy_WPF.Components
         {
             InitializeComponent();
         }
+        
 
         private void ImageBox_Loaded(object sender, RoutedEventArgs e)
         {
-            ImageBox.Source = Emulation.VisibleImage;
+            Emulation.GBFrameReady += Emulation_GBFrameReady;
             RenderOptions.SetBitmapScalingMode(ImageBox,BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(ImageBox,EdgeMode.Aliased);
-            //dmg_cpu_instrs rom reads from address 0xFF4D which is the CGB speed switch register. DMG gameboy returns 0xFF when this address is read, but currently this emulator returns an undefined value, which fools the rom into beliving its running on CGB hardware. The rom then tries to execute a speed switch, which crashes the emulator, as the stop instruction has not been implemented yet.
-            Emulation.Restart(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");
-            
+            Emulation.Restart(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 
             //Emulation.Restart(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\boot_div-dmg0.gb");//Currently broken, as it executes a broken jump instruction. Usually this would result in an error, but in this case the jump instruction creates an infinite loop.
             //ToDo: Either implement the STOP and HALT instructions, and possibly add a button which forces the program to throw an error, which will also pring the debug backlog.
+        }
+
+        private void Emulation_GBFrameReady(object? sender, Emulation.gbEventArgs e)
+        {
+            ImageBox.Source = Emulation.VisibleImage;
+        }
+
+        private void ImageBox_Unloaded(object sender, RoutedEventArgs e)
+        {
+
+            Emulation.GBFrameReady -= Emulation_GBFrameReady;
         }
     }
 }
