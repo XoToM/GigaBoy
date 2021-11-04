@@ -44,8 +44,8 @@ namespace GigaBoyTests
             ConcurrentBag<string> results = new();
             //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\", "*.gb"),
             //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\", "*.gb"),
-            //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\age_test_roms\", "*.gb"),
-            Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\", "*.gb"),
+            Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\age_test_roms\", "*.gb"),
+            //Parallel.ForEach(Directory.GetFiles(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\", "*.gb"),
             (string f)=> {
                 try
                 {

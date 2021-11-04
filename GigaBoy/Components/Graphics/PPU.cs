@@ -210,7 +210,7 @@ namespace GigaBoy.Components.Graphics
                 State = Renderer.Current;
             }
             catch (Exception e) {
-                GB.Error(e.ToString());
+                GB.Error(e);
             }
         }
         protected IEnumerable<PPUStatus> Scanner() {
@@ -245,10 +245,18 @@ namespace GigaBoy.Components.Graphics
                 }
             }
         }
+        //public static (int, int) lastPxl = (0, 0);
         protected void SetPixel(int x,int y,ColorContainer color) {
-            //GB.Log($"Pixel Set at ({x}, {y})");
-            var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
-            screen[y, x] = color;
+            try
+            {
+                //lastPxl = (x, y);
+                //GB.Log($"Pixel Set at ({x}, {y})");
+                var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
+                screen[y, x] = color;
+            }
+            catch (Exception e) {
+                GB.Error(e);
+            }
         }
         /// <summary>
         /// Thread-safe method which returns the currently displayed frame as a System.Drawing.Bitmap.

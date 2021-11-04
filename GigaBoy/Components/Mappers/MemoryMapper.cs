@@ -55,87 +55,86 @@ namespace GigaBoy.Components.Mappers
             }
             return 0x2000;
         }
-        public byte GetByte(ushort address)
+        public byte GetByte(ushort address,bool direct=false)
         {
             //GB.Log($"Read [{address:X}]");
             if (address < 0x8000) return Read(address);
 
-            if (address < 0xA000) return GB.VRam.Read((ushort)(address - 0x8000));
+            if (address < 0xA000) return direct?(GB.VRam.DirectRead((ushort)(address - 0x8000))): GB.VRam.Read((ushort)(address - 0x8000));
             if (address < 0xC000) return SRam.Read((ushort)(address - 0xA000 + SRamBankOffset));
             if (address < 0xE000) return GB.WRam.Read((ushort)(address - 0xC000));
             if (address < 0xFE00) return GB.WRam.Read((ushort)(address - 0xE000));
             if (address < 0xFF00) return 0xFF;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
-            if (address == 0xFFFF) return (byte)GB.CPU.InterruptEnable;
-            if (address >= 0xFF80) return GB.HRam.Read((ushort)(address - 0xFF80));
-
-            switch (address)
+            if ((address & 0xFF00) == 0xFF00)
             {
-                case 0xFF0F:
-                    return (byte)GB.CPU.InterruptFlags;
-                case 0xFF40:
-                    return GB.PPU.LCDC;
-                case 0xFF41:
-                    return GB.PPU.STAT;
-                case 0xFF42:
-                    return GB.PPU.SCY;
-                case 0xFF43:
-                    return GB.PPU.SCX;
-                case 0xFF44:
-                    return GB.PPU.LY;
-                case 0xFF45:
-                    return GB.PPU.LYC;
-                case 0xFF4A:
-                    return GB.PPU.WY;
-                case 0xFF4B:
-                    return GB.PPU.WX;
-                default:
-                    return 0xFF;
+                switch (address)
+                {
+                    case 0xFFFF:
+                        return (byte)GB.CPU.InterruptEnable;
+                    case 0xFF0F:
+                        return (byte)GB.CPU.InterruptFlags;
+                    case 0xFF40:
+                        return GB.PPU.LCDC;
+                    case 0xFF41:
+                        return GB.PPU.STAT;
+                    case 0xFF42:
+                        return GB.PPU.SCY;
+                    case 0xFF43:
+                        return GB.PPU.SCX;
+                    case 0xFF44:
+                        return GB.PPU.LY;
+                    case 0xFF45:
+                        return GB.PPU.LYC;
+                    case 0xFF4A:
+                        return GB.PPU.WY;
+                    case 0xFF4B:
+                        return GB.PPU.WX;
+                    default:
+                        if (address >= 0xFF80) return GB.HRam.Read((ushort)(address - 0xFF80));
+                        return 0xFF;
+                }
             }
+            return 0;
         }
-        public void SetByte(ushort address,byte value)
+        public void SetByte(ushort address, byte value)
         {
-            //GB.Log($"Write [{address:X}] = {value:X}");
+            if (address < 0x8000) { Write(address, value); return; }
 
-            if (address < 0x8000) Write(address,value);
-            else if (address < 0xA000) GB.VRam.Write((ushort)(address - 0x8000),value);
-            else if (address < 0xC000) SRam.Write((ushort)(address - 0xA000 + SRamBankOffset),value);
-            else if (address < 0xE000) GB.WRam.Write((ushort)(address - 0xC000),value);
-            else if (address < 0xFE00) GB.WRam.Write((ushort)(address - 0xE000),value);
-            else if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
-            else if (address == 0xFFFF) GB.CPU.InterruptEnable = (InterruptType)(value&0x1F);
-            else if (address >= 0xFF80) GB.HRam.Write((ushort)(address - 0xFF80),value);
-
-            switch (address)
+            if (address < 0xA000) { GB.VRam.Write((ushort)(address - 0x8000),value); return; }
+            if (address < 0xC000) { SRam.Write((ushort)(address - 0xA000 + SRamBankOffset), value); return; }
+            if (address < 0xE000) { GB.WRam.Write((ushort)(address - 0xC000),value); return; }
+            if (address < 0xFE00) { GB.WRam.Write((ushort)(address - 0xE000),value); return; }
+            if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
+            if ((address & 0xFF00) == 0xFF00)
             {
-                case 0xFF0F:
-                    GB.CPU.InterruptFlags = (InterruptType)(value&0x1F);
-                    break;
-                case 0xFF40:
-                    GB.PPU.LCDC = value;
-                    break;
-                case 0xFF41:
-                    GB.PPU.STAT = value;
-                    break;
-                case 0xFF42:
-                    GB.PPU.SCY = value;
-                    break;
-                case 0xFF43:
-                    GB.PPU.SCX = value;
-                    break;
-                case 0xFF44:
-                    break;
-                case 0xFF45:
-                    GB.PPU.LYC = value;
-                    break;
-                case 0xFF4A:
-                    GB.PPU.WY = value;
-                    break;
-                case 0xFF4B:
-                    GB.PPU.WX = value;
-                    break;
-                default:
-                    return;
+                switch (address)
+                {
+                    case 0xFFFF:
+                        GB.CPU.InterruptEnable = (InterruptType)(value & 31); return;
+                    case 0xFF0F:
+                        GB.CPU.InterruptFlags = (InterruptType)(value & 31); return;
+                    case 0xFF40:
+                        GB.PPU.LCDC = value; return;
+                    case 0xFF41:
+                        GB.PPU.STAT = value; return;
+                    case 0xFF42:
+                        GB.PPU.SCY = value; return;
+                    case 0xFF43:
+                        GB.PPU.SCX = value;return;
+                    case 0xFF44:
+                        return;//LY is readonly
+                    case 0xFF45:
+                        GB.PPU.LYC = value; return;
+                    case 0xFF4A:
+                        GB.PPU.WY = value; return;
+                    case 0xFF4B:
+                        GB.PPU.WX = value; return;
+                    default:
+                        if (address >= 0xFF80) GB.HRam.Write((ushort)(address - 0xFF80),value);
+                        return;
+                }
             }
+            return;
         }
         public virtual byte Read(ushort address)
         {

@@ -71,15 +71,26 @@ namespace GigaBoy_WPF
             else {
                 GB = new GBInstance();
             }
+            GB.Breakpoint += GB_Breakpoint;
             GB.CPU.Debug = true;
-            GB.CPU.PrintOperation = true;   //Warning: Setting this to true defenestrates performance. Please only enable this while debugging, and only with hard to fix bugs.
-            GB.DebugLogging = true;
+            GB.CPU.PrintOperation = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
+            GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
+            //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
+
+            GB.AddBreakpoint(0xFF4D, new() { BreakOnRead = true });
+
             Start();
         }
+
+        private static void GB_Breakpoint(object? sender, EventArgs e)
+        {
+            MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
+        }
+
         public static void Start() {
             //Prepare and start the thread which will run the mainLoop() method.
-            if (GB is null ||_gbRunner is not null|| GB.Running) return;
+            if (GB is null || _gbRunner is not null|| GB.Running) return;
             _gbRunner = Task.Run(runMainLoop);
         }
         private static void runMainLoop()
@@ -96,6 +107,7 @@ namespace GigaBoy_WPF
                 string msg = $"Emulation Exception ({e.GetType().Name}): {e}";
                 if (MainWindow.Main is not null)  //For some reason Environment.Exit doesn't instantly close the process, and the emulator continues to run in the background for a little bit, so I had to implement  null check here.
                 {
+                    throw e;
                     MessageBox.Show(msg, "Emulation Exception", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.None);
                 }
                 else {

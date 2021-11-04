@@ -32,7 +32,7 @@ namespace GigaBoy.Components.Mappers
             var byteCount = Math.Min(Math.Max(0,count+Position),ushort.MaxValue);
             byteCount = byteCount - Position;
             for (int i = 0; i < byteCount; i++) {
-                buffer[offset + i] = mapper.GetByte((ushort)Position++);
+                buffer[offset + i] = mapper.GetByte((ushort)Position++,true);
             }
             return (int)byteCount;
         }

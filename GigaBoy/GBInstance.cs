@@ -22,6 +22,7 @@ namespace GigaBoy
         public MemoryMapper MemoryMapper { get; init; }
         public bool Running { get => Clock.Running; }
         public bool DebugLogging { get; set; } = false;
+        public Dictionary<ushort,LinkedList<BreakpointInfo>> Breakpoints { get; protected set; } = new();
         public GBInstance(string filename)
         {
             LastInstance = this;
@@ -49,7 +50,7 @@ namespace GigaBoy
             Clock.AutoBreakpoint = DateTime.MinValue;
             Log("DMG instance initialised");
         }
-        private  bool BacklogOnlyLogging = true;
+        public bool BacklogOnlyLogging { get; set; } = true;
         private const int BACKLOG_MAX_SIZE = 500;
         private static Queue<string> LogBacklog = new(BACKLOG_MAX_SIZE);
         public void Log(string data)
@@ -100,6 +101,7 @@ namespace GigaBoy
             Clock.Step();
         }
         internal void BreakpointHit() {
+            Debug.WriteLine("Breakpoint Hit!");
             EventHandler? temp = Breakpoint;
             if (temp != null)
             {
@@ -117,6 +119,15 @@ namespace GigaBoy
             if (block) {
                 while (!Clock.Running) { }
             }
+        }
+        public void AddBreakpoint(ushort address,BreakpointInfo breakpoint) {
+            if (Breakpoints.TryGetValue(address, out var breakpoints)) {
+                breakpoints.AddLast(breakpoint);
+                return;
+            }
+            var list = new LinkedList<BreakpointInfo>();
+            list.AddLast(breakpoint);
+            Breakpoints.Add(address,list);
         }
     }
 }

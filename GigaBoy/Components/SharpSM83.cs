@@ -116,6 +116,7 @@ namespace GigaBoy.Components
             while (true) {
                 CPUMode = CPUMode.Running;
                 byte opcode = Fetch();
+                Execute://I Don't like using goto either, but I think goto will be most effective here.
                 LastOpcode = opcode;
 
                 switch (opcode&0b11000000) {
@@ -265,7 +266,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 sdata = (sbyte)Fetch();
                                 yield return false;
-                                PC = (ushort)(PC + sdata);
+                                Jump((ushort)(PC + sdata));
                                 break;
                             case 0x19:
                                 address = HL;
@@ -316,7 +317,7 @@ namespace GigaBoy.Components
                                 if (!Zero)
                                 {
                                     yield return false;
-                                    PC = (ushort)(PC + sdata);
+                                    Jump((ushort)(PC + sdata));
                                 }
                                 break;
                             case 0x21:
@@ -366,7 +367,7 @@ namespace GigaBoy.Components
                                 if (Zero)
                                 {
                                     yield return false;
-                                    PC = (ushort)(PC + sdata);
+                                    Jump((ushort)(PC + sdata));
                                 }
                                 break;
                             case 0x29:
@@ -416,7 +417,7 @@ namespace GigaBoy.Components
                                 if (!Carry)
                                 {
                                     yield return false;
-                                    PC = (ushort)(PC + sdata);
+                                    Jump((ushort)(PC + sdata));
                                 }
                                 break;
                             case 0x31:
@@ -470,7 +471,7 @@ namespace GigaBoy.Components
                                 if (Carry)
                                 {
                                     yield return false;
-                                    PC = (ushort)(PC + sdata);
+                                    Jump((ushort)(PC + sdata));
                                 }
                                 break;
                             case 0x39:
@@ -520,8 +521,22 @@ namespace GigaBoy.Components
                         var source = opcode & 7;
                         var dest = (opcode >> 3) & 7;
                         if (source == dest&&source==6) {
-                            //TODO: Implement Halt
-                            throw new NotImplementedException("HALT");
+                            if (InterruptMasterEnable)//HALT
+                            {
+                                CPUMode = CPUMode.Halted;
+                                while (InterruptFlags == 0)
+                                {
+                                    yield return false;
+                                }
+                                CPUMode = CPUMode.Running;
+                                break;
+                            }
+                            else {
+                                yield return true;
+                                opcode = Fetch();
+                                --PC;
+                                goto Execute;
+                            }//HALT
                         }
                         switch (source)
                         {
@@ -690,7 +705,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch(SP++);
                                 yield return false;
-                                PC = (ushort)((Fetch(SP++) << 8) | data);
+                                Jump((ushort)((Fetch(SP++) << 8) | data));
                                 yield return false;
                                 break;
                             case 1:
@@ -707,7 +722,7 @@ namespace GigaBoy.Components
                                 if (!Zero)
                                 {
                                     yield return false;
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 3:
@@ -716,7 +731,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 address = (ushort)(data | (Fetch() << 8));
                                 yield return false;
-                                PC = address;
+                                Jump(address);
                                 break;
                             case 4:
                                 yield return false;
@@ -730,7 +745,7 @@ namespace GigaBoy.Components
                                     Store(--SP, (byte)(((PC + 3) & 0xFF00) >> 8));
                                     yield return false;
                                     Store(--SP, (byte)((PC + 3) & 0xFF));
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 5:
@@ -757,7 +772,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             case 8:
@@ -766,7 +781,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch(SP++);
                                 yield return false;
-                                PC = (ushort)((Fetch(SP++) << 8) | data);
+                                Jump((ushort)((Fetch(SP++) << 8) | data));
                                 yield return false;
                                 break;
                             case 9:
@@ -775,7 +790,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 address = (ushort)((Fetch(SP++) << 8) | data);
                                 yield return false;
-                                PC = address;
+                                Jump(address);
                                 break;
                             case 0xA:
                                 yield return false;
@@ -785,7 +800,7 @@ namespace GigaBoy.Components
                                 if (Zero)
                                 {
                                     yield return false;
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0xB:   //Prefix 0xCB command
@@ -948,7 +963,7 @@ namespace GigaBoy.Components
                                     Store(--SP, (byte)(((PC + 3) & 0xFF00) >> 8));
                                     yield return false;
                                     Store(--SP, (byte)((PC + 3) & 0xFF));
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0xD:
@@ -961,7 +976,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)(((PC) & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)((PC) & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
                             case 0xE:
                                 yield return false;
@@ -980,7 +995,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
 
@@ -990,7 +1005,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch(SP++);
                                 yield return false;
-                                PC = (ushort)((Fetch(SP++) << 8) | data);
+                                Jump((ushort)((Fetch(SP++) << 8) | data));
                                 yield return false;
                                 break;
                             case 0x11:
@@ -1007,7 +1022,7 @@ namespace GigaBoy.Components
                                 if (!Carry)
                                 {
                                     yield return false;
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0x14:
@@ -1022,7 +1037,7 @@ namespace GigaBoy.Components
                                     Store(--SP, (byte)(((PC + 3) & 0xFF00) >> 8));
                                     yield return false;
                                     Store(--SP, (byte)((PC + 3) & 0xFF));
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0x15:
@@ -1049,7 +1064,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             case 0x18:
@@ -1059,7 +1074,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch(SP++);
                                 yield return false;
-                                PC = (ushort)((Fetch(SP++) << 8) | data);
+                                Jump((ushort)((Fetch(SP++) << 8) | data));
                                 yield return false;
                                 break;
                             case 0x19:
@@ -1068,7 +1083,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 address = (ushort)((Fetch(SP++) << 8) | data);
                                 yield return false;
-                                PC = address;
+                                Jump(address);
                                 InterruptMasterEnable = true;
                                 break;
                             case 0x1A:
@@ -1079,7 +1094,7 @@ namespace GigaBoy.Components
                                 if (Carry)
                                 {
                                     yield return false;
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0x1C:
@@ -1094,7 +1109,7 @@ namespace GigaBoy.Components
                                     Store(--SP, (byte)(((PC + 3) & 0xFF00) >> 8));
                                     yield return false;
                                     Store(--SP, (byte)((PC + 3) & 0xFF));
-                                    PC = address;
+                                    Jump(address);
                                 }
                                 break;
                             case 0x1E:
@@ -1114,7 +1129,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
 
@@ -1157,7 +1172,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             case 0x28:      //ADD SP, signed const byte
@@ -1172,7 +1187,7 @@ namespace GigaBoy.Components
                                 SP = (ushort)(SP + sdata);
                                 break;
                             case 0x29:
-                                PC = HL;
+                                Jump(HL);
                                 break;
                             case 0x2A:
                                 yield return false;
@@ -1198,14 +1213,14 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             case 0x30:
                                 yield return false;
                                 address = (ushort)(0xFF00|Fetch());
                                 yield return false;
-                                Store(address, A);
+                                A = Fetch(address);
                                 break;
                             case 0x31:
                                 yield return false;
@@ -1244,7 +1259,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             case 0x38:      //LD HL, SP + signed byte
@@ -1289,7 +1304,7 @@ namespace GigaBoy.Components
                                 Store(--SP, (byte)((PC & 0xFF00) >> 8));
                                 yield return false;
                                 Store(--SP, (byte)(PC & 0xFF));
-                                PC = address;
+                                Jump(address);
                                 break;
 
                             default:
@@ -1365,21 +1380,93 @@ namespace GigaBoy.Components
                     yield return false;
                     Store(--SP, (byte)(PC & 0xFF));
                     yield return false;
-                    PC = address;
+                    Jump(address);
                     yield return true;
                 }
             }
         }
-        protected byte Fetch(ushort address)
+        protected byte Fetch(ushort address,bool checkBreakpoints=true)
         {
+            if (checkBreakpoints && GB.Breakpoints.ContainsKey(address)) {
+                LinkedList<BreakpointInfo>? breakpoints = GB.Breakpoints[address];
+                if (breakpoints == null || breakpoints.Count == 0)
+                {
+                    GB.Breakpoints.Remove(address);
+                }
+                else {
+                    foreach (var breakpoint in breakpoints) {
+                        if (breakpoint.BreakOnRead) {
+                            GB.BreakpointHit();
+                            break;
+                        }
+                    }
+                }
+            }
             return GB.MemoryMapper.GetByte(address);
         }
         protected void Store(ushort address,byte value)
         {
+            if (GB.Breakpoints.TryGetValue(address, out LinkedList<BreakpointInfo>? breakpoints))
+            {
+                if (breakpoints == null || breakpoints.Count == 0)
+                {
+                    GB.Breakpoints.Remove(address);
+                }
+                else
+                {
+                    foreach (var breakpoint in breakpoints)
+                    {
+                        if (breakpoint.BreakOnWrite)
+                        {
+                            GB.BreakpointHit();
+                            break;
+                        }
+                    }
+                }
+            }
             GB.MemoryMapper.SetByte(address,value);
         }
+        protected void Jump(ushort address) {
+            if (GB.Breakpoints.TryGetValue(address, out LinkedList<BreakpointInfo>? breakpoints))
+            {
+                if (breakpoints == null || breakpoints.Count == 0)
+                {
+                    GB.Breakpoints.Remove(address);
+                }
+                else
+                {
+                    foreach (var breakpoint in breakpoints)
+                    {
+                        if (breakpoint.BreakOnJump)
+                        {
+                            GB.BreakpointHit();
+                            break;
+                        }
+                    }
+                }
+            }
+            PC = address;
+        }
         protected byte Fetch() {
-            return Fetch(PC++);
+            if (GB.Breakpoints.TryGetValue(PC, out LinkedList<BreakpointInfo>? breakpoints))
+            {
+                if (breakpoints == null || breakpoints.Count == 0)
+                {
+                    GB.Breakpoints.Remove(PC);
+                }
+                else
+                {
+                    foreach (var breakpoint in breakpoints)
+                    {
+                        if (breakpoint.BreakOnExecute)
+                        {
+                            GB.BreakpointHit();
+                            break;
+                        }
+                    }
+                }
+            }
+            return Fetch(PC++,false);
         }
         public void SetInterrupt(InterruptType interrupt) {
             InterruptFlags = InterruptFlags | interrupt;

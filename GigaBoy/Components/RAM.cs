@@ -40,7 +40,7 @@ namespace GigaBoy.Components
                 case RAMType.OAM:
                     return GB.PPU.Enabled&&(GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank);
                 case RAMType.VRAM:
-                    return GB.PPU.State == PPUStatus.GenerateFrame;
+                    return (GB.PPU.State != PPUStatus.GenerateFrame||!GB.PPU.Enabled);
                 default:
                     return false;
             }
@@ -63,7 +63,13 @@ namespace GigaBoy.Components
 
         public void Write(ushort address, byte value)
         {
-            if (Available() && Writing) DirectWrite(address, value);
+            if (Available() && Writing)
+            {
+                DirectWrite(address, value);
+            }
+            else {
+                GB.Log($"Writing to {Type}, while {Type} is disabled");
+            }
         }
         public void DirectWrite(ushort address, byte value)
         {
