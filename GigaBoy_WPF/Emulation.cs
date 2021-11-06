@@ -63,12 +63,21 @@ namespace GigaBoy_WPF
 
         public static void Restart(string? romPath) {
             Stop();
+            Init(romPath);
+
+
+            GB?.AddBreakpoint(0xFF4D, new() { BreakOnRead = true });
+
+            Start();
+        }
+        public static void Init(string? romPath) {
             RomFilePath = romPath;
             if (romPath is not null)
             {
                 GB = new GBInstance(romPath);
             }
-            else {
+            else
+            {
                 GB = new GBInstance();
             }
             GB.Breakpoint += GB_Breakpoint;
@@ -77,10 +86,7 @@ namespace GigaBoy_WPF
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
             //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
-
-            GB.AddBreakpoint(0xFF4D, new() { BreakOnRead = true });
-
-            Start();
+            //GB.Clock.SpeedMultiplier = 100000;
         }
 
         private static void GB_Breakpoint(object? sender, EventArgs e)
@@ -92,17 +98,31 @@ namespace GigaBoy_WPF
         public static void Start() {
             //Prepare and start the thread which will run the mainLoop() method.
             if (GB is null || _gbRunner is not null|| GB.Running) return;
-            _gbRunner = Task.Run(runMainLoop);
+            _gbRunner = Task.Run(() => { runMainLoop(false); });
         }
-        private static void runMainLoop()
+        public static void Step() {
+            if (GB is null || _gbRunner is not null || GB.Running) return;
+            _gbRunner = Task.Run(()=> { runMainLoop(true); });
+        }
+        private static void runMainLoop(bool step)
         {
             //This should be ran on a separate thread
             //Call GB.MainLoop() here once. If it returns we should notify the UI thread, and return.
-            Debug.WriteLine("Emulator Start");
+            Debug.WriteLine("Emulator Start");//Stepping doesn't stop the emulator, but Starting and then Stopping it does???
             MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
             try
             {
-                if (GB is not null) GB.MainLoop();
+                if (GB is not null) {
+                    if (step)
+                    {
+                        GB.Step();
+                    }
+                    else
+                    {
+                        GB.MainLoop();
+                    }
+                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(); });
+                }
             }
             catch (Exception e) {
                 string msg = $"Emulation Exception ({e.GetType().Name}): {e}";
@@ -125,8 +145,8 @@ namespace GigaBoy_WPF
             if (GB is not null && _gbRunner is not null && GB.Running)
             {
                 GB.Stop(true);
+                _gbRunner = null;
             }
-            _gbRunner = null;
             Render();
         }
         private static void OnFrame(object? sender,EventArgs e) {
@@ -135,7 +155,7 @@ namespace GigaBoy_WPF
 
         public static void Render() {
             if (GB is null) {
-                GBArgs = null;//This should never be executed, as Render should only be called by the GB.PPU.FrameFinished event, but Visual Studio complains a lot when nullables are on, and turning them off might result in unusual bugs. Doing these little workarounds is much safer anyway, since it might fix some weird bugs that might or might not have occured without them.
+                GBArgs = null;
                 return; 
             }
             if (GBArgs is null) GBArgs = new gbEventArgs(GB);   //This if statement condition should never be true, but Visual Studio complains if I don't check GBArgs for null, so I added a fix in case GBArgs somehow is null here.

@@ -95,6 +95,10 @@ namespace GigaBoy.Components
             if (abc == null) throw new NullReferenceException();
             OpcodeDictionary = abc;
         }
+        /// <summary>
+        /// Processes a single tick of the cpu. CPU performs an action every 4 ticks, so most of the time this returns immediately. Returns true if an instruction has been successfully executed during this tick.
+        /// </summary>
+        /// <returns>true if an instruction has finished executing during this tick, false otherwise.</returns>
         public bool TickOnce() {
             if (DelayTicks-- <= 0)
             {
@@ -107,6 +111,9 @@ namespace GigaBoy.Components
             }
             return false;
         }
+        /// <summary>
+        /// Same as TickOnce, just without the return value. I wanted this class to implement the ClockBoundDevice class, and the interface wants void.
+        /// </summary>
         public void Tick() {
             TickOnce();
         }

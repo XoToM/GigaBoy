@@ -15,63 +15,61 @@ namespace GigaBoy.Components
         }
         public bool StopRequested { get; set; }
         public bool Running { get; protected set; } = false;
+        private double _speedMultiplier = 1;
+
+        public double SpeedMultiplier
+        {
+            get => 1 / _speedMultiplier;
+            set => _speedMultiplier = 1 / value;
+        }
+
         public DateTime AutoBreakpoint { get; set; } = DateTime.MinValue;
-        public void RunClock() {
+        public void RunClock(bool step) {
+            double durationTicks;
             lock (GB)
             {
                 StopRequested = false;
                 Running = true;
+                durationTicks = Math.Round(0.00000023841857910156 * SpeedMultiplier * Stopwatch.Frequency);
             }
-            bool doAutoBreakpoint = AutoBreakpoint != DateTime.MinValue;
-            var sw = Stopwatch.StartNew();
             try
             {
-                while (true)
+                var sw = Stopwatch.StartNew();
+                bool lastResult = false;
+                while (!(step&lastResult))
                 {
-                    var durationTicks = Math.Round(0.00000023841857910156 * Stopwatch.Frequency);
+                    bool breakpoint = false;
                     sw.Restart();
                     while (sw.ElapsedTicks < durationTicks) { }
                     lock (GB)
                     {
                         GB.PPU.Tick();
-                        GB.CPU.Tick();
-                        if (doAutoBreakpoint)
+                        lastResult = GB.CPU.TickOnce();
+                        if (AutoBreakpoint != DateTime.MinValue)
                         {
                             if (AutoBreakpoint < DateTime.Now)
                             {
-                                GB.BreakpointHit();
+                                breakpoint = true;
                             }
                         }
-
+                    }
+                    if (breakpoint) {
+                        GB.BreakpointHit();
+                    }
+                    lock (GB) {
                         if (StopRequested)
                         {
-                            StopRequested = false;
+                            GB.Log("Stopping");
                             return;
                         }
+                        durationTicks = Math.Round(0.00000023841857910156 * SpeedMultiplier * Stopwatch.Frequency);
                     }
                 }
             }
             finally {
-                lock(GB) Running = false;
-            }
-        }
-        public void Step()
-        {
-            lock (GB)
-            {
-                if (Running) return;
-                Running = true;
-                try
-                {
-                    do
-                    {
-                        GB.PPU.Tick();
-                    } while (!GB.CPU.TickOnce());
-
-                }
-                finally
-                {
+                lock (GB) { 
                     Running = false;
+                    StopRequested = false;
                 }
             }
         }

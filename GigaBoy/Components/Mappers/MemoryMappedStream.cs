@@ -29,12 +29,16 @@ namespace GigaBoy.Components.Mappers
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var byteCount = Math.Min(Math.Max(0,count+Position),ushort.MaxValue);
-            byteCount = byteCount - Position;
-            for (int i = 0; i < byteCount; i++) {
-                buffer[offset + i] = mapper.GetByte((ushort)Position++,true);
+            lock (mapper.GB)
+            {
+                var byteCount = Math.Min(Math.Max(0, count + Position), ushort.MaxValue);
+                byteCount = byteCount - Position;
+                for (int i = 0; i < byteCount; i++)
+                {
+                    buffer[offset + i] = mapper.GetByte((ushort)Position++, true);
+                }
+                return (int)byteCount;
             }
-            return (int)byteCount;
         }
 
         public override long Seek(long offset, SeekOrigin origin)

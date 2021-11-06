@@ -86,19 +86,18 @@ namespace GigaBoy
             Debug.WriteLine(e.Message);
             throw e;
         }
-        public void MainLoop() {
+        public void MainLoop(bool step=false) {
             try
             {
                 CPU.Running = true;
-                Clock.RunClock();
+                Clock.RunClock(step);
             }
             catch (Exception e) {
                 Error(e);
             }
         }
         public void Step() {
-            CPU.Running = true;
-            Clock.Step();
+            MainLoop(true);
         }
         internal void BreakpointHit() {
             //Debug.WriteLine("Breakpoint Hit!");

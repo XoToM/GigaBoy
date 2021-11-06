@@ -24,5 +24,20 @@ namespace GigaBoy_WPF.Components
         {
             InitializeComponent();
         }
+
+        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            RenderOptions.SetBitmapScalingMode(Tileset1, BitmapScalingMode.NearestNeighbor);
+            RenderOptions.SetBitmapScalingMode(Tileset2, BitmapScalingMode.NearestNeighbor);
+            RenderOptions.SetBitmapScalingMode(Tileset3, BitmapScalingMode.NearestNeighbor);
+            RenderOptions.SetEdgeMode(Tileset1, EdgeMode.Aliased);
+            RenderOptions.SetEdgeMode(Tileset2, EdgeMode.Aliased);
+            RenderOptions.SetEdgeMode(Tileset3, EdgeMode.Aliased);
+        }
     }
 }

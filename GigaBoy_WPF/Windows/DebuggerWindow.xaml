@@ -63,11 +63,13 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
             <Button Grid.Column="0" Grid.Row="0" Content="Start" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Start" Padding="7 3"/>
             <Button Grid.Column="1" Grid.Row="0" Content="Stop" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Stop" Padding="7 3"/>
             <Button Grid.Column="0" Grid.Row="1" Content="Restart" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Restart" Padding="7 3"/>
-            <Button Grid.Column="1" Grid.Row="1" Content="Crash" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Crash" Padding="7 3"/>
+            <Button Grid.Column="1" Grid.Row="1" Content="Step" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Step" Padding="7 3"/>
+            <Button Grid.Column="0" Grid.Row="2" Content="Crash" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DebuggerWindow}}, Path=EmulatorControlCommand}" CommandParameter="Crash" Padding="7 3"/>
         </Grid>
     </Grid>
 </Window>
