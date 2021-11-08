@@ -82,7 +82,7 @@ namespace GigaBoy_WPF
             }
             GB.Breakpoint += GB_Breakpoint;
             GB.CPU.Debug = true;
-            GB.CPU.PrintOperation = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
+            GB.CPU.PrintOperation = true;   //Warning: Setting this to true while BacklogOnlyLogging is set to false will defenestrate performance. Enable at your own risk!
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
             //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
@@ -112,7 +112,8 @@ namespace GigaBoy_WPF
             MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
             try
             {
-                if (GB is not null) {
+                if (GB is not null)
+                {
                     if (step)
                     {
                         GB.Step();
@@ -121,22 +122,26 @@ namespace GigaBoy_WPF
                     {
                         GB.MainLoop();
                     }
-                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(); });
+                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(); Debug.WriteLine("Frame Attempt"); });
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 string msg = $"Emulation Exception ({e.GetType().Name}): {e}";
                 if (MainWindow.Main is not null)  //For some reason Environment.Exit doesn't instantly close the process, and the emulator continues to run in the background for a little bit, so I had to implement  null check here.
                 {
                     throw e;
                     MessageBox.Show(msg, "Emulation Exception", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.None);
                 }
-                else {
+                else
+                {
                     Environment.Exit(0);
                 }
                 Debug.WriteLine(msg);
-                _gbRunner = null;
                 GB = null;
+            }
+            finally {
+                _gbRunner = null;
             }
             MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
             Debug.WriteLine("Emulator Exit");
