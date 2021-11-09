@@ -7,6 +7,7 @@
         xmlns:components="clr-namespace:GigaBoy_WPF.Components"
         xmlns:hexControl="clr-namespace:WpfHexaEditor;assembly=WPFHexaEditor"
         xmlns:Core="clr-namespace:WpfHexaEditor.Core;assembly=WPFHexaEditor" x:Class="GigaBoy_WPF.Windows.DebuggerWindow"
+        xmlns:HexCore="clr-namespace:WpfHexaEditor.Core;assembly=WPFHexaEditor"
         mc:Ignorable="d"
         Title="DebuggerWindow" Height="450" Width="800" Loaded="Window_Loaded">
     <Grid>
@@ -45,7 +46,7 @@
             <components:HexRegisterView Grid.Column="1" Grid.Row="4" GBRegisterName="PC" GBRegisterType="PC" />
             <components:HexRegisterView Grid.Column="1" Grid.Row="5" GBRegisterName="SP" GBRegisterType="SP" />
         </Grid>
-        <hexControl:HexEditor x:Name="HexViewerMain" Width="auto" Height="auto" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" AllowCustomBackgroundBlock="False" AllowAutoHighLightSelectionByte="False" ApplicationName="GigaBoy Memory Viewer" ReadOnlyMode="True" VisualCaretMode="Overwrite" VisualByteAdressLength="2" ShowByteToolTip="True">
+        <hexControl:HexEditor x:Name="HexViewerMain" Width="auto" Height="auto" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" AllowCustomBackgroundBlock="True" AllowAutoHighLightSelectionByte="False" ApplicationName="GigaBoy Memory Viewer" ReadOnlyMode="True" VisualCaretMode="Overwrite" VisualByteAdressLength="2" ShowByteToolTip="True">
             <!--<hexControl:HexEditor.CustomBackgroundBlockItems>
                 <Core:CustomBackgroundBlock Color="#FFFFCACA" Description="ROM0" Length="16384"/>
                 <Core:CustomBackgroundBlock Color="#FFFFAEAE" Description="ROMX" Length="16384" StartOffset="16384"/>

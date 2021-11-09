@@ -86,7 +86,8 @@ namespace GigaBoy_WPF
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
             //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
-            //GB.Clock.SpeedMultiplier = 100000;
+            GB.SpeedMultiplier = 500000;
+            GB.FrameAutoRefreshTreshold = double.MaxValue;
         }
 
         private static void GB_Breakpoint(object? sender, EventArgs e)

@@ -83,12 +83,19 @@ namespace GigaBoy_WPF.Components
             Emulation.GBFrameReady += OnFrameRefresh;
             InitializeComponent();
         }
+        private int lastValue = -1;
         public void OnFrameRefresh(object? sender,EventArgs args) {
-            Refresh();
+            ushort value = Getter.Invoke();
+            if (lastValue != value)
+                Refresh(value);
         }
         public void Refresh() {
+            Refresh(Getter.Invoke());
+        }
+        public void Refresh(ushort value)
+        {
             int bitCount=0;
-            ushort value = Getter.Invoke();
+            lastValue = value;
             switch (GBRegisterType) {
                 case RegisterType.Memory8Register:
                 case RegisterType.A:

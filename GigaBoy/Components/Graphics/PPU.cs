@@ -186,6 +186,14 @@ namespace GigaBoy.Components.Graphics
         public Span2D<ColorContainer> GetFrame() {
             return new Span2D<ColorContainer>(displayBuffer,160,144);
         }
+        /// <summary>
+        /// Returns the currently visible frame. The resulting span should only be accessed while either the PPU or the GBInstance objects are locked
+        /// </summary>
+        /// <returns>Currently visible frame</returns>
+        public Span2D<ColorContainer> GetFrame(bool backBuffer)
+        {
+            return new Span2D<ColorContainer>(backBuffer?frameBuffer:displayBuffer, 160, 144);
+        }
         protected void FrameDone()
         {
             lock (this) {
@@ -195,19 +203,26 @@ namespace GigaBoy.Components.Graphics
             }
             FrameRendered?.Invoke(this,EventArgs.Empty);
             Array.Fill(frameBuffer, clearColor);
+            _frameUpdateFinished = true;
         }
+        private bool _frameUpdateFinished = false;
         /// <summary>
         /// This method executes one clock cycle of the PPU. It is not thread-safe, and it should not be accessed when the PPU object is locked, as it can lead to deadlocks.
         /// </summary>
         public void Tick() {
             try
             {
+                _frameUpdateFinished = false;
                 if (_setStat != 0xFF) {
                     DirectSTAT = _setStat;
                     _setStat = 0xFF;
                 }
                 Renderer.MoveNext();
                 State = Renderer.Current;
+                if ((!_frameUpdateFinished)&&(GB.CurrentlyStepping || GB.FrameAutoRefreshTreshold>GB.SpeedMultiplier))
+                {
+                    FrameRendered?.Invoke(this, EventArgs.Empty);
+                }
             }
             catch (Exception e) {
                 GB.Error(e);

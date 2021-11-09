@@ -21,7 +21,10 @@ namespace GigaBoy
         public CPUClock Clock { get; init; }
         public MemoryMapper MemoryMapper { get; init; }
         public bool Running { get => Clock.Running; }
+        public double SpeedMultiplier { get => Clock.SpeedMultiplier; set => Clock.SpeedMultiplier = value; }
+        public double FrameAutoRefreshTreshold { get; set; } = 0;
         public bool DebugLogging { get; set; } = false;
+        public bool CurrentlyStepping { get; protected set; } = false;
         public Dictionary<ushort,LinkedList<BreakpointInfo>> Breakpoints { get; protected set; } = new();
         public GBInstance(string filename)
         {
@@ -89,11 +92,16 @@ namespace GigaBoy
         public void MainLoop(bool step=false) {
             try
             {
+                CurrentlyStepping = step;
                 CPU.Running = true;
                 Clock.RunClock(step);
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 Error(e);
+            }
+            finally {
+                CurrentlyStepping = false;
             }
         }
         public void Step() {
