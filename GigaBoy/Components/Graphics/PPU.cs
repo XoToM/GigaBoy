@@ -378,13 +378,12 @@ namespace GigaBoy.Components.Graphics
         #endregion
         #region BlockRendering
         public void GetTileMapBlock(int x,int y, Span2D<byte> tiles,ushort tileMapAddr) {
-            int address = tileMapAddr;
-            var vram = GB.VRam;
+            var tmram = GB.TMRAMBanks[(tileMapAddr==0x9C00)?1:0];
             y = y * 32;
             for (int v = 0; v < tiles.Height; v++) {
                 for (int u = 0; u < tiles.Width; u++) {
-                    ushort addr = (ushort)(address + ((u + x)&31) + ((y + v)&31) * 32);
-                    var data = vram.DirectRead((ushort)(addr-0x8000));
+                    ushort addr = (ushort)(((u + x)&31) + ((y + v)&31) * 32);
+                    var data = tmram.DirectRead(addr);
                     tiles[v, u] = data;
                 }
             }
@@ -396,9 +395,9 @@ namespace GigaBoy.Components.Graphics
             DrawRegion(tileMap,image,tileDataAddr,palette);
         }
         public Span<byte> GetTileData(byte tile,ushort tileDataAddr) {
-            int address = tileDataAddr;
-            if (tile > 127) address = 0x8000;
-            return GB.VRam.DirectRead((ushort)(address+tile*16-0x8000),16);
+            var bank = GB.CRAMBanks[(tileDataAddr - 0x8000) / 0x800];
+            if (tile > 127) bank = GB.CRAMBanks[1];
+            return bank.DirectRead(tile,16);
         }
         public void DrawRegion(Span2D<byte> tilemap,Span2D<ColorContainer> image,ushort tileDataAddr,PaletteType palette) {
             if (image.Width < tilemap.Width * 8 || image.Height < tilemap.Height * 8) throw new OutOfMemoryException($"Image buffer needs to be at least {tilemap.Width * 8}x{tilemap.Height * 8}");

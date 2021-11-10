@@ -66,7 +66,7 @@ namespace GigaBoy_WPF
             Init(romPath);
 
 
-            GB?.AddBreakpoint(0xFF4D, new() { BreakOnRead = true });
+            //GB?.AddBreakpoint(0xFF4D, new() { BreakOnRead = true });
 
             Start();
         }
@@ -86,8 +86,8 @@ namespace GigaBoy_WPF
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
             //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
-            GB.SpeedMultiplier = 500000;
-            GB.FrameAutoRefreshTreshold = double.MaxValue;
+            //GB.SpeedMultiplier = 500000;
+            //GB.FrameAutoRefreshTreshold = double.MaxValue;
         }
 
         private static void GB_Breakpoint(object? sender, EventArgs e)
@@ -171,6 +171,8 @@ namespace GigaBoy_WPF
             {
                 DrawGB(VisibleImage, GB.PPU.GetFrame(), 0, 0);
                 GBFrameReady?.Invoke(null, GBArgs);
+                foreach (var cram in GB.CRAMBanks) cram.Modified = false;
+                foreach (var tmram in GB.TMRAMBanks) tmram.Modified = false;
             }
         }
 

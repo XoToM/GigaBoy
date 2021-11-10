@@ -4,9 +4,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GigaBoy_WPF.Windows"
+        xmlns:components="clr-namespace:GigaBoy_WPF.Components"
         mc:Ignorable="d"
         Title="VRAM_TileViewer" Height="450" Width="800">
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <!--components:CharacterDisplay Character="126" TileDataBank="x8800" Width="100" Height="100"/-->
+        <components:TileView TileDataBank="x8000" Grid.Column="0" Grid.Row="0"/>
+        <components:TileView TileDataBank="x8800" Grid.Column="0" Grid.Row="1"/>
+        <components:TileView TileDataBank="x9000" Grid.Column="0" Grid.Row="2"/>
     </Grid>
 </Window>

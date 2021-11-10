@@ -23,6 +23,7 @@ namespace GigaBoy_WPF
     {
         public static MainWindow? Main { get; private set; }
         public static DebuggerWindow? Debugger { get; private set; }
+        public static VRAM_TileViewer? TileDataViewer { get; private set; }
         public MainWindow()
         {
             Main = this;
@@ -31,11 +32,25 @@ namespace GigaBoy_WPF
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (Debugger is null) {
+            if (Debugger is null)
+            {
                 Debugger = new();
                 Debugger.Closing += Debugger_Closing;
                 Debugger.Show();
             }
+            if (TileDataViewer is null)
+            {
+                TileDataViewer = new();
+                TileDataViewer.Closing += TileDataViewer_Closing;
+                TileDataViewer.Show();
+            }
+        }
+
+        private void TileDataViewer_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (TileDataViewer is null) return;
+            TileDataViewer.Closing -= Debugger_Closing;
+            TileDataViewer = null;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

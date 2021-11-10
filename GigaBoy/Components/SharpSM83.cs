@@ -19,6 +19,7 @@ namespace GigaBoy.Components
         public bool Debug { get; set; } = true;
         public bool PrintOperation { get; set; } = false;
         public byte LastOpcode { get; protected set; } = 0;
+        public ushort LastPC { get; protected set; } = 0;
         protected IEnumerator<bool> InstructionProcessor;
         #region Registers
         public byte A { get; set; }
@@ -100,14 +101,23 @@ namespace GigaBoy.Components
         /// </summary>
         /// <returns>true if an instruction has finished executing during this tick, false otherwise.</returns>
         public bool TickOnce() {
-            if (DelayTicks-- <= 0)
+            try
             {
-                DelayTicks = 3;
-                if (!Running) {
-                    CPUMode = CPUMode.Stopped;
-                    return false; 
+                if (DelayTicks-- <= 0)
+                {
+                    DelayTicks = 3;
+                    if (!Running)
+                    {
+                        CPUMode = CPUMode.Stopped;
+                        return false;
+                    }
+                    return InstructionProcessor.MoveNext();
                 }
-                return InstructionProcessor.MoveNext();
+                return false;
+            }
+            catch (Exception e) {
+                if(e.StackTrace is not null) GB.Log(e.StackTrace);
+                GB.Error(e);
             }
             return false;
         }
@@ -125,6 +135,7 @@ namespace GigaBoy.Components
                 byte opcode = Fetch();
                 Execute://I Don't like using goto either, but I think goto will be most effective here.
                 LastOpcode = opcode;
+                LastPC = PC;
 
                 switch (opcode&0b11000000) {
                     case 0:
@@ -229,7 +240,6 @@ namespace GigaBoy.Components
                             case 0x10:
                                 CPUMode = CPUMode.LowPowerStop;
                                 throw new NotImplementedException("STOP instruction has not been implemented yet.");
-                                break;
                             case 0x11:
                                 yield return false;
                                 data = Fetch();
@@ -1345,7 +1355,7 @@ namespace GigaBoy.Components
                                             s += " " + opcodeName.ToString();
                                     }
 
-                                    GB.Log('[' + PC.ToString("X") + ']' + ' ' + s);
+                                    GB.Log('[' + LastPC.ToString("X") + ']' + ' ' + s);
                                 }
                             }
                         }

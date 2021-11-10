@@ -20,24 +20,20 @@ namespace GigaBoy_WPF.Components
     /// </summary>
     public partial class TileView : UserControl
     {
+        public CharacterTileDataBank TileDataBank
+        {
+            get { return (CharacterTileDataBank)GetValue(TileDataBankProperty); }
+            set { SetValue(TileDataBankProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for MyProperty.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty TileDataBankProperty =
+            DependencyProperty.Register("TileDataBank", typeof(CharacterTileDataBank), typeof(TileView), new PropertyMetadata(CharacterTileDataBank.x8000));
+
         public TileView()
         {
             InitializeComponent();
         }
 
-        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void UserControl_Loaded(object sender, RoutedEventArgs e)
-        {
-            RenderOptions.SetBitmapScalingMode(Tileset1, BitmapScalingMode.NearestNeighbor);
-            RenderOptions.SetBitmapScalingMode(Tileset2, BitmapScalingMode.NearestNeighbor);
-            RenderOptions.SetBitmapScalingMode(Tileset3, BitmapScalingMode.NearestNeighbor);
-            RenderOptions.SetEdgeMode(Tileset1, EdgeMode.Aliased);
-            RenderOptions.SetEdgeMode(Tileset2, EdgeMode.Aliased);
-            RenderOptions.SetEdgeMode(Tileset3, EdgeMode.Aliased);
-        }
     }
 }

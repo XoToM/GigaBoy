@@ -12,7 +12,8 @@ namespace GigaBoy
         public static GBInstance? LastInstance = null;
         public event EventHandler? Breakpoint;
         public PPU PPU { get; init; }
-        public RAM VRam { get; init; }
+        public CRAM[] CRAMBanks { get; init; }
+        public TMRAM[] TMRAMBanks { get; init; }
         public RAM WRam { get; init; }
         public RAM HRam { get; init; }
         public RAM SRam { get { return MemoryMapper.SRam; } }
@@ -29,7 +30,8 @@ namespace GigaBoy
         public GBInstance(string filename)
         {
             LastInstance = this;
-            VRam = new RAM(this, 0x2000) { Type = RAMType.VRAM };
+            CRAMBanks = new CRAM[] { new(this), new(this), new(this) };
+            TMRAMBanks = new TMRAM[] { new(this), new(this)};
             WRam = new(this, 0x2000) { Type = RAMType.RAM };
             HRam = new(this, 128) { Type = RAMType.HRAM };
             PPU = new(this);
@@ -40,7 +42,8 @@ namespace GigaBoy
         public GBInstance()
         {
             LastInstance = this;
-            VRam = new RAM(this, 0x2000) { Type = RAMType.VRAM };
+            CRAMBanks = new CRAM[] { new(this), new(this), new(this) };
+            TMRAMBanks = new TMRAM[] { new(this), new(this) };
             WRam = new(this, 0x2000) { Type = RAMType.RAM };
             HRam = new(this, 128) { Type = RAMType.HRAM };
             PPU = new(this);
@@ -107,7 +110,7 @@ namespace GigaBoy
         public void Step() {
             MainLoop(true);
         }
-        internal void BreakpointHit() {
+        protected internal void BreakpointHit() {
             //Debug.WriteLine("Breakpoint Hit!");
             EventHandler? temp = Breakpoint;
             if (temp != null)

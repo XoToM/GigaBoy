@@ -67,7 +67,16 @@ namespace GigaBoy.Components.Mappers
             return StandardGetByte(address,direct);
         }
         public byte StandardGetByte(ushort address, bool direct) {
-            if (address < 0xA000) return direct ? (GB.VRam.DirectRead((ushort)(address - 0x8000))) : GB.VRam.Read((ushort)(address - 0x8000));
+            if (address < 0x9800)
+            {
+                var cram = GB.CRAMBanks[(address - 0x8000) / 0x800];
+                return direct ? cram.DirectRead((ushort)((address - 0x8000) % 0x800)) : cram.Read((ushort)((address - 0x8000) % 0x800));
+            }
+            if (address < 0xA000)
+            {
+                var tmram = GB.TMRAMBanks[(address - 0x9800) / 0x400];
+                return direct ? tmram.DirectRead((ushort)((address - 0x9800) % 0x400)) : tmram.Read((ushort)((address - 0x9800) % 0x400));
+            }
             if (address < 0xC000) return SRam.Read((ushort)(address - 0xA000 + SRamBankOffset));
             if (address < 0xE000) return GB.WRam.Read((ushort)(address - 0xC000));
             if (address < 0xFE00) return GB.WRam.Read((ushort)(address - 0xE000));
@@ -111,9 +120,17 @@ namespace GigaBoy.Components.Mappers
             return;
         }
         public void StandartSetByte(ushort address,byte value) {
-            if (address < 0xA000) { 
-                GB.VRam.Write((ushort)(address - 0x8000), value); //Split the vram into sections, and mark which sections were modified with bool values. Check these values when rendering a frame to see if some part of vram needs to be rerendered.
-                return; 
+            if (address < 0x9800)
+            {
+                var cram = GB.CRAMBanks[(address - 0x8000) / 0x800];
+                cram.Write((ushort)((address - 0x8000) % 0x800),value);
+                return;
+            }
+            if (address < 0xA000)
+            {
+                var tmram = GB.TMRAMBanks[(address - 0x9800) / 0x400];
+                tmram.Write((ushort)((address - 0x9800) % 0x400),value);
+                return;
             }
             if (address < 0xC000) { SRam.Write((ushort)(address - 0xA000 + SRamBankOffset), value); return; }
             if (address < 0xE000) { GB.WRam.Write((ushort)(address - 0xC000), value); return; }

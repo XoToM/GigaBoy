@@ -16,12 +16,10 @@ namespace GigaBoy.Components.Graphics
         public PPU PPU { get; init; }
         public GBInstance GB { get; init; }
         public int BackgroundPixels { get; protected set; } = 0;
-        public RAM VRAM { get; init; }
         public uint backgroundQueue = 0;
         public (byte, PaletteType)[] spriteQueue = new (byte, PaletteType)[8];
         public FIFO(PPU ppu) {
             GB = ppu.GB;
-            VRAM = GB.VRam;
             PPU = ppu;
         }
         public void Reset() {
@@ -120,8 +118,14 @@ namespace GigaBoy.Components.Graphics
         public IEnumerable<(byte, byte)?> FetchTileData(ushort tileMap,int scrollY,int px=0,bool fetchSprite=false) {
             yield return null;
             byte tileId = 0;
+            CRAM cram;
             if (!fetchSprite) {
-                tileId = VRAM.DirectRead((ushort)(tileMap-0x8000));
+                //tileId = VRAM.DirectRead((ushort)(tileMap-0x8000));
+                
+                var tmram = GB.TMRAMBanks[(tileMap - 0x9800) / 0x400];
+                tileId = tmram.Read((ushort)((tileMap - 0x9800) % 0x400));
+                
+                //Test if the correct tile was fetched.
                 Span2D<byte> til = new Span2D<byte>(stackalloc byte[1],1,1);
                 PPU.GetTileMapBlock(px / 8, PPU.LY / 8, til, (ushort)(PPU.BackgroundTileMap ? 0x9c00 : 0x9800));
                 if (til[0, 0] != tileId) GB.Log($"Incorrect tile fetched ({tileId:X} was fetched, should be {til[0,0]:X})");
@@ -140,8 +144,11 @@ namespace GigaBoy.Components.Graphics
                 tileAddr = (ushort)((0x1000 - (tileId << 4)) | ((scrollY & 0x7) << 1));
             }
             yield return null;
-
-            byte tileDataLow = VRAM.Read((ushort)((tileAddr|0x9800)-0x8000));
+            byte tileDataLow=255;
+            
+            cram = GB.CRAMBanks[tileAddr / 0x800];
+            tileDataLow = cram.DirectRead((ushort)(tileAddr % 0x800));
+            
             yield return null;
             if (!PPU.TileData)
             {
@@ -154,7 +161,8 @@ namespace GigaBoy.Components.Graphics
             tileAddr = (ushort)(tileAddr | 1);
             yield return null;
 
-            byte tileDataHigh = VRAM.Read((ushort)((tileAddr|0x9800)-0x8000));
+            cram = GB.CRAMBanks[tileAddr / 0x800];
+            byte tileDataHigh = cram.DirectRead((ushort)(tileAddr % 0x800));
             yield return (tileDataLow,tileDataHigh);
         }
 

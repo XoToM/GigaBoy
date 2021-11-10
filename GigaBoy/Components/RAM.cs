@@ -7,7 +7,7 @@ using GigaBoy.Components.Graphics;
 
 namespace GigaBoy.Components
 {
-    public enum RAMType {RAM,VRAM,SRAM,HRAM,OAM }
+    public enum RAMType {RAM,SRAM,HRAM,OAM }
     public class RAM : MMIODevice
     {
         public GBInstance GB { get; init; }
@@ -22,12 +22,12 @@ namespace GigaBoy.Components
             GB = gb;
             Memory = new byte[capacity];
         }
-        public byte Read(ushort address)
+        public virtual byte Read(ushort address)
         {
             if(Available() && Reading) return DirectRead(address);
             return DisabledReadData;
         }
-        public bool Available() {
+        public virtual bool Available() {
             //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
             //TODO: Uncomment this when DMA is finished.
             //if(Type!=RAMType.HRAM&&DMA.Active)return false;
@@ -39,19 +39,17 @@ namespace GigaBoy.Components
                     return true;
                 case RAMType.OAM:
                     return GB.PPU.Enabled&&(GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank);
-                case RAMType.VRAM:
-                    return (GB.PPU.State != PPUStatus.GenerateFrame||!GB.PPU.Enabled);
                 default:
                     return false;
             }
         }
-        public byte DirectRead(ushort address)
+        public virtual byte DirectRead(ushort address)
         {
             if (address >= Size)
                 GB.Error($"Invalid Read [{address:X}]");
             return Memory[address];
         }
-        public Span<byte> DirectRead(ushort address,ushort count)
+        public virtual Span<byte> DirectRead(ushort address,ushort count)
         {
             int addr = address;
             if (addr + count >= Size)
@@ -61,7 +59,7 @@ namespace GigaBoy.Components
             return Memory.AsSpan(addr,count);
         }
 
-        public void Write(ushort address, byte value)
+        public virtual void Write(ushort address, byte value)
         {
             if (Available() && Writing)
             {
@@ -71,7 +69,7 @@ namespace GigaBoy.Components
                 GB.Log($"Writing to {Type}, while {Type} is disabled");
             }
         }
-        public void DirectWrite(ushort address, byte value)
+        public virtual void DirectWrite(ushort address, byte value)
         {
             if (address >= Size)
                 GB.Error($"Invalid Write [{address:X}] = {value:X}");
