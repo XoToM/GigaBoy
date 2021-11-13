@@ -25,7 +25,7 @@ namespace GigaBoy_WPF.Components
             InitializeComponent();
         }
 
-        private void Emulation_GBFrameReady(object? sender, Emulation.gbEventArgs e)
+        private void Emulation_GBFrameReady(object? sender, Emulation.GbEventArgs e)
         {
             ImageBox.Source = Emulation.VisibleImage;
         }

@@ -19,6 +19,14 @@ namespace GigaBoy.Components.Graphics
         public ColorContainer(Color color) {
             this.color = color.ToArgb();
         }
+        public ColorContainer(byte r, byte g, byte b)
+        {
+            this.color = r | (g << 8) | (b << 16) | (0xFF << 24);
+        }
+        public ColorContainer(byte r, byte g, byte b,byte a)
+        {
+            this.color = r | (g << 8) | (b << 16) | (a << 24);
+        }
 
         public static implicit operator Color(ColorContainer container) { return container.Color; }
         public static implicit operator ColorContainer(Color color) { return new ColorContainer(color); }

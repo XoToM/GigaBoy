@@ -1,182 +1,28 @@
 ﻿<UserControl x:Class="GigaBoy_WPF.Components.TileView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:GigaBoy_WPF.Components"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <Grid.Resources>
-            <Style TargetType="local:CharacterDisplay">
-                <Setter Property="TileDataBank" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=TileDataBank}"/>
-            </Style>
-        </Grid.Resources>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-            <ColumnDefinition Width="16"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="16"/>
-        </Grid.RowDefinitions>
-        <local:CharacterDisplay Grid.Column="0" Grid.Row="0" Character="0"/>
-        <local:CharacterDisplay Grid.Column="1" Grid.Row="0" Character="1"/>
-        <local:CharacterDisplay Grid.Column="2" Grid.Row="0" Character="2"/>
-        <local:CharacterDisplay Grid.Column="3" Grid.Row="0" Character="3"/>
-        <local:CharacterDisplay Grid.Column="4" Grid.Row="0" Character="4"/>
-        <local:CharacterDisplay Grid.Column="5" Grid.Row="0" Character="5"/>
-        <local:CharacterDisplay Grid.Column="6" Grid.Row="0" Character="6"/>
-        <local:CharacterDisplay Grid.Column="7" Grid.Row="0" Character="7"/>
-        <local:CharacterDisplay Grid.Column="8" Grid.Row="0" Character="8"/>
-        <local:CharacterDisplay Grid.Column="9" Grid.Row="0" Character="9"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="0" Character="10"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="0" Character="11"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="0" Character="12"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="0" Character="13"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="0" Character="14"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="0" Character="15"/>
-
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="1" Character="16"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="1" Character="17"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="1" Character="18"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="1" Character="19"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="1" Character="20"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="1" Character="21"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="1" Character="22"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="1" Character="23"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="1" Character="24"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="1" Character="25"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="1" Character="26"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="1" Character="27"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="1" Character="28"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="1" Character="29"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="1" Character="30"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="1" Character="31"/>
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="2" Character="32"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="2" Character="33"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="2" Character="34"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="2" Character="35"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="2" Character="36"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="2" Character="37"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="2" Character="38"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="2" Character="39"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="2" Character="40"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="2" Character="41"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="2" Character="42"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="2" Character="43"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="2" Character="44"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="2" Character="45"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="2" Character="46"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="2" Character="47"/>
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="3" Character="48"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="3" Character="49"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="3" Character="50"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="3" Character="51"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="3" Character="52"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="3" Character="53"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="3" Character="54"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="3" Character="55"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="3" Character="56"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="3" Character="57"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="3" Character="58"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="3" Character="59"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="3" Character="60"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="3" Character="61"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="3" Character="62"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="3" Character="63"/>
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="4" Character="64"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="4" Character="65"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="4" Character="66"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="4" Character="67"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="4" Character="68"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="4" Character="69"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="4" Character="70"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="4" Character="71"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="4" Character="72"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="4" Character="73"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="4" Character="74"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="4" Character="75"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="4" Character="76"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="4" Character="77"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="4" Character="78"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="4" Character="79"/>
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="5" Character="80"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="5" Character="81"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="5" Character="82"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="5" Character="83"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="5" Character="84"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="5" Character="85"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="5" Character="86"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="5" Character="87"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="5" Character="88"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="5" Character="89"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="5" Character="90"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="5" Character="91"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="5" Character="92"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="5" Character="93"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="5" Character="94"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="5" Character="95"/>
-
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="6" Character="96"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="6" Character="97"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="6" Character="98"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="6" Character="99"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="6" Character="100"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="6" Character="101"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="6" Character="102"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="6" Character="103"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="6" Character="104"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="6" Character="105"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="6" Character="106"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="6" Character="107"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="6" Character="108"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="6" Character="109"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="6" Character="110"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="6" Character="111"/>
-
-
-        <local:CharacterDisplay Grid.Column="0"  Grid.Row="7" Character="112"/>
-        <local:CharacterDisplay Grid.Column="1"  Grid.Row="7" Character="113"/>
-        <local:CharacterDisplay Grid.Column="2"  Grid.Row="7" Character="114"/>
-        <local:CharacterDisplay Grid.Column="3"  Grid.Row="7" Character="115"/>
-        <local:CharacterDisplay Grid.Column="4"  Grid.Row="7" Character="116"/>
-        <local:CharacterDisplay Grid.Column="5"  Grid.Row="7" Character="117"/>
-        <local:CharacterDisplay Grid.Column="6"  Grid.Row="7" Character="118"/>
-        <local:CharacterDisplay Grid.Column="7"  Grid.Row="7" Character="119"/>
-        <local:CharacterDisplay Grid.Column="8"  Grid.Row="7" Character="120"/>
-        <local:CharacterDisplay Grid.Column="9"  Grid.Row="7" Character="121"/>
-        <local:CharacterDisplay Grid.Column="10" Grid.Row="7" Character="122"/>
-        <local:CharacterDisplay Grid.Column="11" Grid.Row="7" Character="123"/>
-        <local:CharacterDisplay Grid.Column="12" Grid.Row="7" Character="124"/>
-        <local:CharacterDisplay Grid.Column="13" Grid.Row="7" Character="125"/>
-        <local:CharacterDisplay Grid.Column="14" Grid.Row="7" Character="126"/>
-        <local:CharacterDisplay Grid.Column="15" Grid.Row="7" Character="127"/>
-    </Grid>
+			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+			 xmlns:local="clr-namespace:GigaBoy_WPF.Components"
+			 xmlns:sys="clr-namespace:System;assembly=mscorlib"
+			 mc:Ignorable="d" 
+			 d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
+	<Grid>
+        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0"/>
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+				<DataTemplate DataType="{x:Type sys:Byte}">
+                    <local:CharacterDisplay Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=TileSize}" 
+                                            Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=TileSize}" 
+                                            Character="{Binding}" 
+                                            TileDataBank="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=TileDataBank}" 
+                                            Margin="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=Spacing}"/>
+				</DataTemplate>
+			</ListView.ItemTemplate>
+		</ListView>
+	</Grid>
 </UserControl>

@@ -9,16 +9,23 @@
         Title="VRAM_TileViewer" Height="450" Width="800">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="512"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!--components:CharacterDisplay Character="126" TileDataBank="x8800" Width="100" Height="100"/-->
-        <components:TileView TileDataBank="x8000" Grid.Column="0" Grid.Row="0"/>
-        <components:TileView TileDataBank="x8800" Grid.Column="0" Grid.Row="1"/>
-        <components:TileView TileDataBank="x9000" Grid.Column="0" Grid.Row="2"/>
+        <Border Grid.Column="0" Grid.Row="0" BorderBrush="DimGray" BorderThickness="3 1">
+            <components:TileView TileDataBank="x8000" TileIndexStart="0" TileIndexCount="128"/>
+        </Border>
+        <Border Grid.Column="0" Grid.Row="1" BorderBrush="DimGray" BorderThickness="3 1">
+            <components:TileView TileDataBank="x8800" TileIndexStart="0" TileIndexCount="128"/>
+        </Border>
+        <Border Grid.Column="0" Grid.Row="2" BorderBrush="DimGray" BorderThickness="3 1">
+            <components:TileView TileDataBank="x9000" TileIndexStart="0" TileIndexCount="128"/>
+        </Border>
     </Grid>
 </Window>

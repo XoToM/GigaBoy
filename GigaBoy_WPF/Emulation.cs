@@ -15,11 +15,15 @@ using GigaBoy_WPF.Components;
 
 namespace GigaBoy_WPF
 {
+    public enum CharacterTileDataBank { x8000, x8800, x9000 }
+    public enum TilemapBank { x9800, x9C00 }
     public static class Emulation       //This class connects the UI and the emulator together, and provides helper methods for things such as rendering.
     {
         public static ICommand EmulatorControlCommand { get; private set; } = new EmulatorCommandRunner();
         private static GBInstance? _gBInstance;
         private static Task? _gbRunner;
+        private static bool wasInitialised = false;
+        public static WriteableBitmap[] TileBitmaps { get; private set; } = new WriteableBitmap[128 * 3];
 
         public static GBInstance? GB
         {
@@ -43,10 +47,10 @@ namespace GigaBoy_WPF
                 GigaboyRefresh?.Invoke(null, EventArgs.Empty); 
             }
         }
-        public static gbEventArgs? GBArgs { get; private set; } = null;
-        public class gbEventArgs : EventArgs {
+        public static GbEventArgs? GBArgs { get; private set; } = null;
+        public class GbEventArgs : EventArgs {
             public GBInstance GB { get; protected internal set; }
-            public gbEventArgs(GBInstance gb) {
+            public GbEventArgs(GBInstance gb) {
                 GB = gb;
             }
         }
@@ -59,8 +63,20 @@ namespace GigaBoy_WPF
         /// <summary>
         /// This event is invoked when the emulator finishes drawing a frame. It is called from the UI thread, and it locks the GBInstance object, so all of its members can be safely accessed inside the event handler.
         /// </summary>
-        public static event EventHandler<gbEventArgs>? GBFrameReady;
+        public static event EventHandler<GbEventArgs>? GBFrameReady;
 
+        private static void Prepare() {
+            if (wasInitialised) return;
+            //Span2D<ColorContainer> image = new Span2D<ColorContainer>(stackalloc ColorContainer[8*8],8,8);
+            //image.Buffer.Fill(new ColorContainer(255, 255, 255));
+
+            for (int i = 0; i < TileBitmaps.Length; i++) {
+                var bmp = new WriteableBitmap(8,8,96,96,System.Windows.Media.PixelFormats.Bgra32,null);
+                //DrawGB(bmp,image,0,0);
+                TileBitmaps[i] = bmp;
+            }
+            wasInitialised = true;
+        }
         public static void Restart(string? romPath) {
             Stop();
             Init(romPath);
@@ -71,6 +87,7 @@ namespace GigaBoy_WPF
             Start();
         }
         public static void Init(string? romPath) {
+            Prepare();
             RomFilePath = romPath;
             if (romPath is not null)
             {
@@ -86,8 +103,9 @@ namespace GigaBoy_WPF
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
             //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
-            //GB.SpeedMultiplier = 500000;
+            //GB.SpeedMultiplier = 5000;
             //GB.FrameAutoRefreshTreshold = double.MaxValue;
+            Render(true);
         }
 
         private static void GB_Breakpoint(object? sender, EventArgs e)
@@ -99,13 +117,13 @@ namespace GigaBoy_WPF
         public static void Start() {
             //Prepare and start the thread which will run the mainLoop() method.
             if (GB is null || _gbRunner is not null|| GB.Running) return;
-            _gbRunner = Task.Run(() => { runMainLoop(false); });
+            _gbRunner = Task.Run(() => { RunMainLoop(false); });
         }
         public static void Step() {
             if (GB is null || _gbRunner is not null || GB.Running) return;
-            _gbRunner = Task.Run(()=> { runMainLoop(true); });
+            _gbRunner = Task.Run(()=> { RunMainLoop(true); });
         }
-        private static void runMainLoop(bool step)
+        private static void RunMainLoop(bool step)
         {
             //This should be ran on a separate thread
             //Call GB.MainLoop() here once. If it returns we should notify the UI thread, and return.
@@ -123,7 +141,7 @@ namespace GigaBoy_WPF
                     {
                         GB.MainLoop();
                     }
-                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(); Debug.WriteLine("Frame Attempt"); });
+                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(true); });
                 }
             }
             catch (Exception e)
@@ -158,18 +176,23 @@ namespace GigaBoy_WPF
         private static void OnFrame(object? sender,EventArgs e) {
             VisibleImage.Dispatcher.InvokeAsync(Render);
         }
+        public static void Render() { Render(false); }
 
-        public static void Render() {
+        public static void Render(bool forced) {
             if (GB is null) {
                 GBArgs = null;
                 return; 
             }
-            if (GBArgs is null) GBArgs = new gbEventArgs(GB);   //This if statement condition should never be true, but Visual Studio complains if I don't check GBArgs for null, so I added a fix in case GBArgs somehow is null here.
+            if (GBArgs is null) GBArgs = new GbEventArgs(GB);   //This if statement condition should never be true, but Visual Studio complains if I don't check GBArgs for null, so I added a fix in case GBArgs somehow is null here.
 
             //Debug.WriteLine("Frame Update");
             lock (GB)
             {
                 DrawGB(VisibleImage, GB.PPU.GetFrame(), 0, 0);
+                for (int i=0;i<GB.CRAMBanks.Length*128;i++) {
+                    var cram = GB.CRAMBanks[i/128];
+                    RenderTile(i,forced);
+                }
                 GBFrameReady?.Invoke(null, GBArgs);
                 foreach (var cram in GB.CRAMBanks) cram.Modified = false;
                 foreach (var tmram in GB.TMRAMBanks) tmram.Modified = false;
@@ -184,7 +207,7 @@ namespace GigaBoy_WPF
                 unsafe
                 {
                     var stride = bitmap.BackBufferStride/sizeof(int);
-                    Span2D<int> data = new Span2D<int>(new Span<int>((void*)bitmap.BackBuffer, stride * bitmap.PixelHeight), stride, bitmap.PixelHeight);
+                    Span2D<int> data = new(new Span<int>((void*)bitmap.BackBuffer, stride * bitmap.PixelHeight), stride, bitmap.PixelHeight);
                     for (int v = 0; v < image.Height; v++)
                     {
                         for (int u = 0; u < image.Width; u++)
@@ -199,6 +222,30 @@ namespace GigaBoy_WPF
             finally {
                 bitmap.Unlock();
             }
+        }
+
+        public static void RenderTile(byte tile,CharacterTileDataBank bank,bool forced = false)
+        {
+            if (Emulation.GB is null||tile>=128) return;
+
+
+            CRAM cram = Emulation.GB.CRAMBanks[(int)bank];
+
+            if (forced | (cram.Modified & cram.ModifiedCharacters[tile]))
+            {
+                var tileImage = TileBitmaps[tile + 128 * (int)bank];
+
+                Span2D<ColorContainer> image = new(stackalloc ColorContainer[8 * 8], 8, 8);
+                cram.GetCharacter(ref image, tile, Emulation.GB.PPU.Palette, PaletteType.Background);
+                Emulation.DrawGB(tileImage, image, 0, 0);
+                cram.ModifiedCharacters[tile] = false;
+            }
+        }
+        public static void RenderTile(int i, bool forced = false) {
+            RenderTile((byte)(i%128),(CharacterTileDataBank)(i/128),forced);
+        }
+        public static WriteableBitmap GetTileBitmap(byte tile, CharacterTileDataBank bank) {
+            return TileBitmaps[tile+(int)bank*128];
         }
 
     }

@@ -24,6 +24,7 @@ namespace GigaBoy_WPF
         public static MainWindow? Main { get; private set; }
         public static DebuggerWindow? Debugger { get; private set; }
         public static VRAM_TileViewer? TileDataViewer { get; private set; }
+        public static VRAM_TileMapViewer? TileMapViewer { get; private set; }
         public MainWindow()
         {
             Main = this;
@@ -44,12 +45,25 @@ namespace GigaBoy_WPF
                 TileDataViewer.Closing += TileDataViewer_Closing;
                 TileDataViewer.Show();
             }
+            if (TileMapViewer is null)
+            {
+                TileMapViewer = new();
+                TileMapViewer.Closing += TileMapViewer_Closing;
+                TileMapViewer.Show();
+            }
+        }
+
+        private void TileMapViewer_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (TileMapViewer is null) return;
+            TileMapViewer.Closing -= TileMapViewer_Closing;
+            TileMapViewer = null;
         }
 
         private void TileDataViewer_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (TileDataViewer is null) return;
-            TileDataViewer.Closing -= Debugger_Closing;
+            TileDataViewer.Closing -= TileDataViewer_Closing;
             TileDataViewer = null;
         }
 

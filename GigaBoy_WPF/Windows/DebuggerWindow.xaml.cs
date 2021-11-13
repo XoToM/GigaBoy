@@ -39,7 +39,7 @@ namespace GigaBoy_WPF.Windows
         }
         public int frameCounter = 10;
         private ushort lastPC = 0x100;
-        private void Emulation_GBFrameReady(object? sender, Emulation.gbEventArgs e)
+        private void Emulation_GBFrameReady(object? sender, Emulation.GbEventArgs e)
         {
             var pc = Emulation.GB?.CPU.PC;
             if (pc.HasValue)
