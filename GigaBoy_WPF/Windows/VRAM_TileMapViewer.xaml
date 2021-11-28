@@ -8,8 +8,8 @@
         xmlns:main="clr-namespace:GigaBoy_WPF"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="VRAM_TileMapViewer" Height="450" Width="800">
-    <Grid>
+        Title="VRAM_TileMapViewer" SizeToContent="WidthAndHeight">
+    <Grid Margin="2">
         <Grid.Resources>
             <ObjectDataProvider x:Key="TileMapBank" ObjectType="{x:Type sys:Enum}" MethodName="GetValues">
                 <ObjectDataProvider.MethodParameters>
@@ -25,20 +25,34 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="*" MaxWidth="10" MinWidth="1"/>
             <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="*" MaxWidth="5"/>
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="*" MaxHeight="5"/>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="10"/>
+            <RowDefinition Height="*" MaxHeight="5"/>
             <RowDefinition Height="auto"/>
+            <RowDefinition Height="*" MaxHeight="5"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="TilemapBankSelector" ItemsSource="{Binding Source={StaticResource TileMapBank}}" SelectionChanged="TilemapBankSelector_SelectionChanged"></ComboBox>
-        <ComboBox Grid.Row="0" Grid.Column="3" x:Name="TileDataBankSelector" ItemsSource="{Binding Source={StaticResource TileDataBank}}" SelectionChanged="TileDataBankSelector_SelectionChanged"/>
-        <components:TileView x:Name="TileViewer" Grid.Column="2" Grid.Row="2" TileViewMode="Tilemap" 
+        <Grid Grid.Column="1" Grid.Row="1" Grid.RowSpan="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <components:TileView x:Name="TileViewer" TileViewMode="Tilemap" 
                              TileDataBank="{Binding ElementName=TileDataBankSelector, Path=SelectedValue}"
                              TilemapBank="{Binding ElementName=TilemapBankSelector, Path=SelectedValue}" 
                              Spacing="-5 -2" Width="516" Height="516" TileSize="16"/>
+        </Grid>
+
+        <Label Grid.Column="3" Grid.Row="1">Tilemap:</Label>
+        <ComboBox Grid.Column="5" Grid.Row="1" x:Name="TilemapBankSelector" ItemsSource="{Binding Source={StaticResource TileMapBank}}" SelectionChanged="TilemapBankSelector_SelectionChanged" SelectedIndex="0"/>
+        <Label Grid.Column="3" Grid.Row="3">Tileset:</Label>
+        <ComboBox Grid.Column="5" Grid.Row="3" x:Name="TileDataBankSelector" ItemsSource="{Binding Source={StaticResource TileDataBank}}" SelectionChanged="TileDataBankSelector_SelectionChanged" SelectedIndex="0"/>
     </Grid>
 </Window>

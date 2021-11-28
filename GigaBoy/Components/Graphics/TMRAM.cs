@@ -21,6 +21,7 @@ namespace GigaBoy.Components.Graphics
         }
         public override void DirectWrite(ushort address, byte value)
         {
+            System.Diagnostics.Debug.WriteLine($"Screen Tile Update [{address:X}] = {value:X} ");
             base.DirectWrite(address, value);
             Modified = true;
         }

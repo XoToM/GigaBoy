@@ -11,7 +11,7 @@
         <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0"/>
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0"/>
                 </ItemsPanelTemplate>
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>

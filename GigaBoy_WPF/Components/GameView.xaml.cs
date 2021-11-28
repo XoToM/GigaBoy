@@ -35,6 +35,7 @@ namespace GigaBoy_WPF.Components
             Emulation.GBFrameReady += Emulation_GBFrameReady;
             RenderOptions.SetBitmapScalingMode(ImageBox, BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(ImageBox, EdgeMode.Aliased);
+            
             Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
             //Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\testRom.gb");
 
