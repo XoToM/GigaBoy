@@ -34,7 +34,7 @@ namespace GigaBoy.Components.Graphics
         /// <summary>
         /// Bit 7 of LCDC
         /// </summary>
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; } = true;
         /// <summary>
         /// Bit 6 of LCDC
         /// </summary>
@@ -46,7 +46,7 @@ namespace GigaBoy.Components.Graphics
         /// <summary>
         /// Bit 4 of LCDC
         /// </summary>
-        public bool TileData { get; set; } = false;
+        public bool TileData { get; set; } = true;
         /// <summary>
         /// Bit 3 of LCDC
         /// </summary>
@@ -166,7 +166,7 @@ namespace GigaBoy.Components.Graphics
         public byte LY
         {
             get { return _ly; }
-            set { _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
+            set { GB.Log($"LY = {LY:X}, LYC = {LYC:X}"); _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
         }
 
         public byte LYC { get; set; } = 0;
@@ -196,6 +196,7 @@ namespace GigaBoy.Components.Graphics
         }
         protected void FrameDone()
         {
+            GB.Log("Frame Done!");
             lock (this) {
                 var dbuffer = displayBuffer;
                 displayBuffer = frameBuffer;
@@ -219,7 +220,7 @@ namespace GigaBoy.Components.Graphics
                 }
                 Renderer.MoveNext();
                 State = Renderer.Current;
-                if ((!_frameUpdateFinished)&&(GB.CurrentlyStepping || GB.FrameAutoRefreshTreshold>GB.SpeedMultiplier))
+                if ( (! _frameUpdateFinished) && (GB.CurrentlyStepping || GB.FrameAutoRefreshTreshold > GB.SpeedMultiplier) )
                 {
                     FrameRendered?.Invoke(this, EventArgs.Empty);
                 }
@@ -243,8 +244,10 @@ namespace GigaBoy.Components.Graphics
                     while (LY < 144)
                     {
                         if (LY == WY && WindowEnable) yWindow = true;
-                        foreach (var s in ScanlineScanner(yWindow)) yield return s;
+                        foreach (var s in ScanlineScanner(yWindow))
+                            yield return s;
                         //GB.Log($"Scanline = {LY}");
+                        Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
                         if (!WindowEnable) yWindow = false;
                         ++LY;
                     }
@@ -325,12 +328,12 @@ namespace GigaBoy.Components.Graphics
                     continue;
                 }
                 xWindow = xWindow || ((xPixel + 7 == WX) && (WX > 0)) || (WX == 0 && xPixel <= 0);
-                bool doWindow = WindowEnable && yWindow && xWindow;
+                bool doWindow = WindowEnable && yWindow && xWindow;    //Window enable detection is currently broken. It causes an infinite loop, as the FIFO gets cleared during every iterration of this function. This prevents any pixels from getting drawn, as the FIFO doesn't have enough pixel to shift out.
 
                 fetcher.MoveNext();
                 bool fetcherFinished = fetcher.Current.HasValue;
 
-                if (doWindow && (!usingWindow)) {
+                if (doWindow && (!usingWindow)) {   //When doWindow is true this always ends up true, which causes the ppu to lockup, as the fetcher gets reset on every ppu tick. 
                     usingWindow = true;
                     FIFO.ClearLastBits();
                     fetcher = FIFO.FetchTileData(windowAddress++,LY - WY, xPixel).GetEnumerator();
@@ -343,9 +346,9 @@ namespace GigaBoy.Components.Graphics
 
                 if (FIFO.BackgroundPixels <= 8 && fetcherFinished) {
 #pragma warning disable CS8629 
-                    var pushPixel = fetcher.Current.Value;//fetcherFinished will only be true when this value is not null, but VS complains for some reason, so I have to disable the nullable warning here. This will never get reached if the value is null.
+                    var pushPixel = fetcher.Current.Value;  //fetcherFinished will only be true when this value is not null, but VS complains for some reason, so I have to disable the nullable warning here. This will never get reached if the value is null.
 #pragma warning restore CS8629 
-                    FIFO.EnqueuePixels(pushPixel);
+                    FIFO.EnqueuePixels(pushPixel);  //Its not completely out of the question that this line might be overriding the first row of pixels with the second, before the first even has a chance to shift anyting out. Might have to do a BackgroundPixels == 0 check inside the method, and set the most significant part of the queue to the color instead of the least significant if its true.
                     fetcher = FIFO.FetchTileData(usingWindow ? windowAddress++ : backgroundAddress,usingWindow?WY+LY:SCX+LY, xPixel).GetEnumerator();
                     ++backgroundAddress;
                 }
@@ -364,6 +367,8 @@ namespace GigaBoy.Components.Graphics
             for (int i = 0; i < 456 - delayDots; i++) {
                 yield return stat;
             }
+            GB.Log("Scanline Done");
+            yield break;
         }
         protected ushort calculateBackgroundTileMapAddress()
         {

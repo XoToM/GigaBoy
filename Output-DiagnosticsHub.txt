@@ -1,0 +1,3 @@
+﻿Profiling of 'GigaBoy_WPF_Core' started.
+GigaBoy_WPF_Core has exited.
+Profiling of 'GigaBoy_WPF_Core' stopped.

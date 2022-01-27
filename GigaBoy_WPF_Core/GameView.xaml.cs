@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using GigaBoy_WPF_Core;
 
 namespace GigaBoy_WPF.Components
 {
@@ -27,7 +28,10 @@ namespace GigaBoy_WPF.Components
 
 		private void Emulation_GBFrameReady(object? sender, Emulation.GbEventArgs e)
 		{
-			ImageBox.Source = Emulation.VisibleImage;
+            Dispatcher.InvokeAsync(() => {
+				Emulation.DrawGB(Emulation.VisibleImage, e.GB.PPU.GetFrame(), 0, 0);
+				ImageBox.Source = Emulation.VisibleImage;
+			});
 		}
 
 		private void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -43,10 +47,12 @@ namespace GigaBoy_WPF.Components
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 			Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\dmg_acid2\dmg-acid2.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\cpu_test.gb");
+			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\squares.gb");
 
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\boot_div-dmg0.gb");//Currently broken, as it executes a broken jump instruction. Usually this would result in an error, but in this case the jump instruction creates an infinite loop.
 			//ToDo: Implement the HALT instruction.
 			//Emulation.GB?.AddBreakpoint(0x02B7,new GigaBoy.BreakpointInfo() { BreakOnExecute=true,BreakOnJump=true,BreakOnRead=true });
+			Emulation.GB.BreakpointsEnable = false;
 			Emulation.Start();
 
 		}

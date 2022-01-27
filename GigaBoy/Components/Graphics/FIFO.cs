@@ -42,6 +42,7 @@ namespace GigaBoy.Components.Graphics
         }
         public ColorContainer ShiftOut() {
             byte color = DequeuePixel();
+            //System.Diagnostics.Debug.WriteLine($"queue: {Convert.ToString(backgroundQueue,2)}, pxl: {Convert.ToString(color,2)} ({color}) ");
             var palette = PaletteType.Background;
             if (spriteQueue[0].Item1 != 0) {
                 color = spriteQueue[0].Item1;
@@ -123,12 +124,12 @@ namespace GigaBoy.Components.Graphics
                 //tileId = VRAM.DirectRead((ushort)(tileMap-0x8000));
                 
                 var tmram = GB.TMRAMBanks[(tileMap - 0x9800) / 0x400];
-                tileId = tmram.Read((ushort)((tileMap - 0x9800) % 0x400));
+                tileId = tmram.DirectRead((ushort)((tileMap - 0x9800) % 0x400));
                 
                 //Test if the correct tile was fetched.
                 Span2D<byte> til = new Span2D<byte>(stackalloc byte[1],1,1);
                 PPU.GetTileMapBlock(px / 8, PPU.LY / 8, til, (ushort)(PPU.BackgroundTileMap ? 0x9c00 : 0x9800));
-                if (til[0, 0] != tileId) GB.Log($"Incorrect tile fetched ({tileId:X} was fetched, should be {til[0,0]:X})");
+                //if (til[0, 0] != tileId) GB.Log($"Incorrect tile fetched ({tileId:X} was fetched, should be {til[0,0]:X})");
             }
             if (fetchSprite) {
                 throw new NotImplementedException("Sprites have not been implemented yet.");
@@ -168,18 +169,18 @@ namespace GigaBoy.Components.Graphics
 
         public void EnqueuePixels((byte,byte) data)
         {
-            uint mask = 1;
             uint data1 = data.Item1;
             uint data2 = data.Item2;
             ClearLastBits();
             BackgroundPixels += 8;
             for (int i = 0; i < 8; i++)
             {
-                uint color = data1 & mask;
-                color = color | ((data2 & mask) << 1);
-                mask = mask << 1;
+                uint color = data1 & 1;
+                color = color | ((data2 & 1) << 1);
                 color = color << (i * 2);
                 backgroundQueue = backgroundQueue | color;
+                data1 = data1 >> 1;
+                data2 = data2 >> 1;
             }
         }
         public void MixSprite((byte, byte) data,PaletteType palette) {

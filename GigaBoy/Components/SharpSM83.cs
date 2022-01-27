@@ -133,7 +133,7 @@ namespace GigaBoy.Components
             while (true) {
                 CPUMode = CPUMode.Running;
                 byte opcode = Fetch();
-                Execute://I Don't like using goto either, but I think goto will be most effective here.
+                Execute://I Don't like using goto either, but I think goto will be most effective here. Its here so I can skip the instruction fetch.
                 LastOpcode = opcode;
                 LastPC = PC;
 
@@ -615,7 +615,9 @@ namespace GigaBoy.Components
                             default:
                                 throw new NotImplementedException();
                         }
-                        if (source == dest && Debug) { 
+                        if (source == dest && Debug)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Instruction Breakpoint");
                             GB.BreakpointHit();
                         }
                         break;
@@ -882,9 +884,9 @@ namespace GigaBoy.Components
                                                 SubFlag = false;
                                                 Carry = idata != 0;
                                                 break;
-                                            case 24:
+                                            case 24:    //  Incorrectly Implemented Instruction?    //RR {reg}
                                                 idata = data & 1;
-                                                data = (byte)((data >> 1) | (Carry ? 1 : 0));
+                                                data = (byte)((data >> 1) | (Carry ? 0x80 : 0));
                                                 Zero = data == 0;
                                                 HalfCarry = false;
                                                 SubFlag = false;
@@ -1361,6 +1363,7 @@ namespace GigaBoy.Components
                         }
                     }
                 }
+                //if (PC > 0x8000) GB.BreakpointHit();
                 yield return true;
                 if (InterruptMasterEnable && (((int)InterruptEnable & (int)InterruptFlags & 0x1F) != 0)) {
                     ushort address;
@@ -1483,6 +1486,8 @@ namespace GigaBoy.Components
                     }
                 }
             }
+            if (PC == 0x02B7) System.Diagnostics.Debug.WriteLine($"Last PC: 0x{LastPC:X}");
+            LastPC = PC;
             return Fetch(PC++,false);
         }
         public void SetInterrupt(InterruptType interrupt) {

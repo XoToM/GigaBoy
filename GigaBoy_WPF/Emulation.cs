@@ -12,10 +12,11 @@ using GigaBoy.Components;
 using GigaBoy.Components.Graphics;
 using System.Windows.Input;
 using GigaBoy_WPF.Components;
+using System.Threading;
 
 namespace GigaBoy_WPF
 {
-    public enum CharacterTileDataBank { x8000, x8800, x9000 }
+    public enum CharacterTileDataBank { x8000=0, x8800=1, x9000=2 }
     public enum TilemapBank { x9800, x9C00 }
     public static class Emulation       //This class connects the UI and the emulator together, and provides helper methods for things such as rendering.
     {
@@ -23,6 +24,7 @@ namespace GigaBoy_WPF
         private static GBInstance? _gBInstance;
         private static Task? _gbRunner;
         private static bool wasInitialised = false;
+        private static bool animateBoy = false;
         public static WriteableBitmap[] TileBitmaps { get; private set; } = new WriteableBitmap[128 * 3];
 
         public static GBInstance? GB
@@ -110,44 +112,61 @@ namespace GigaBoy_WPF
 
         private static void GB_Breakpoint(object? sender, EventArgs e)
         {
-            MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
-            Debug.WriteLine("Breakpoint Hit");
+            //GB?.Stop();
+            //MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
+            //Debug.WriteLine($"Breakpoint Hit {(_gbRunner is not null)}");
         }
 
         public static void Start() {
+            animateBoy = false;
             //Prepare and start the thread which will run the mainLoop() method.
             if (GB is null || _gbRunner is not null|| GB.Running) return;
             _gbRunner = Task.Run(() => { RunMainLoop(false); });
         }
         public static void Step() {
+            animateBoy = false;
             if (GB is null || _gbRunner is not null || GB.Running) return;
             _gbRunner = Task.Run(()=> { RunMainLoop(true); });
+        }
+        public static void Animate()
+        {
+            animateBoy = true;
+            if (GB is null || _gbRunner is not null || GB.Running) return;
+            _gbRunner = Task.Run(() => { RunMainLoop(true); });
         }
         private static void RunMainLoop(bool step)
         {
             //This should be ran on a separate thread
             //Call GB.MainLoop() here once. If it returns we should notify the UI thread, and return.
-            Debug.WriteLine("Emulator Start");//Stepping doesn't stop the emulator, but Starting and then Stopping it does???
+            Debug.WriteLine("Emulator Start");
             MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
             try
             {
                 if (GB is not null)
                 {
-                    if (step)
+                    do
                     {
-                        GB.Step();
-                    }
-                    else
-                    {
-                        GB.MainLoop();
-                    }
-                    MainWindow.Main?.Dispatcher.Invoke(() => { Render(true); });
+                        if (step)
+                        {
+                            GB.Step();
+                            MainWindow.Main?.Dispatcher.Invoke(() => { GigaboyRefresh?.Invoke(null, EventArgs.Empty); });
+                            if (animateBoy)
+                            {
+                                Thread.Sleep(16);
+                            }
+                        }
+                        else
+                        {
+                            GB.MainLoop();
+                        }
+                        MainWindow.Main?.Dispatcher.Invoke(() => { Render(true); });
+                    } while (animateBoy);
                 }
             }
             catch (Exception e)
             {
                 string msg = $"Emulation Exception ({e.GetType().Name}): {e}";
-                if (MainWindow.Main is not null)  //For some reason Environment.Exit doesn't instantly close the process, and the emulator continues to run in the background for a little bit, so I had to implement  null check here.
+                if (MainWindow.Main is not null)  //For some reason Environment.Exit doesn't instantly close the process, and the emulator continues to run in the background for a little bit, so I had to implement null check here.
                 {
                     throw e;
                     MessageBox.Show(msg, "Emulation Exception", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.None);
@@ -158,6 +177,7 @@ namespace GigaBoy_WPF
                 }
                 Debug.WriteLine(msg);
                 GB = null;
+                return;
             }
             finally {
                 _gbRunner = null;
@@ -166,6 +186,7 @@ namespace GigaBoy_WPF
             Debug.WriteLine("Emulator Exit");
         }
         public static void Stop() {
+            animateBoy = false;
             if (GB is not null && _gbRunner is not null && GB.Running)
             {
                 GB.Stop(true);
@@ -245,6 +266,10 @@ namespace GigaBoy_WPF
             RenderTile((byte)(i%128),(CharacterTileDataBank)(i/128),forced);
         }
         public static WriteableBitmap GetTileBitmap(byte tile, CharacterTileDataBank bank) {
+            if (tile > 127)
+            {
+                return TileBitmaps[tile];
+            }
             return TileBitmaps[tile+(int)bank*128];
         }
 
