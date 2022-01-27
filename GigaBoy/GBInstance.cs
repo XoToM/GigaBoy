@@ -26,6 +26,7 @@ namespace GigaBoy
         public double FrameAutoRefreshTreshold { get; set; } = 0;
         public bool DebugLogging { get; set; } = false;
         public bool CurrentlyStepping { get; protected set; } = false;
+        public bool BreakpointsEnable = true;
         public Dictionary<ushort,LinkedList<BreakpointInfo>> Breakpoints { get; protected set; } = new();
         public GBInstance(string filename)
         {
@@ -81,13 +82,8 @@ namespace GigaBoy
             CPU.Running = false;
             PPU.Enabled = false;
             Debug.WriteLine("  ---  Emulation Exception  ---  ");
-            if (BacklogOnlyLogging)
-            {
-                Debug.WriteLine("   --  Backlog  --");
-                while (LogBacklog.Count != 0) Debug.WriteLine(LogBacklog.Dequeue());
-                LogBacklog.Clear();
-                Debug.WriteLine("\n");
-            }
+
+            PrintBackLog();
             Debug.WriteLine("   --  " + e.GetType().Name+"  --");
             Debug.WriteLine(e.Message);
             throw e;
@@ -110,13 +106,29 @@ namespace GigaBoy
         public void Step() {
             MainLoop(true);
         }
+        public void PrintBackLog() {
+            if (BacklogOnlyLogging)
+            {
+                Debug.WriteLine("   --  Backlog  --");
+                while (LogBacklog.Count != 0) Debug.WriteLine(LogBacklog.Dequeue());
+                LogBacklog.Clear();
+                Debug.WriteLine("   --  Register States  --   ");
+                Debug.WriteLine($"AF={CPU.AF:X}  BC={CPU.BC:X}  DE={CPU.DE:X}  HL={CPU.HL:X}  SP={CPU.SP:X}  PC={CPU.PC:X}  LastPC={CPU.LastPC:X}\n\n");
+            }
+        }
         protected internal void BreakpointHit() {
-            //Debug.WriteLine("Breakpoint Hit!");
+            Debug.WriteLine("Breakpoint Hit!");
+
+            if (!BreakpointsEnable) return;
+
+            PrintBackLog();
+
             EventHandler? temp = Breakpoint;
             if (temp != null)
             {
                 temp.Invoke(null,new EventArgs());
             }
+
         }
         /// <summary>
         /// Stops the emulator. This method should be thread-safe.

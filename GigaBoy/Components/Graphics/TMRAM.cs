@@ -21,7 +21,6 @@ namespace GigaBoy.Components.Graphics
         }
         public override void DirectWrite(ushort address, byte value)
         {
-            System.Diagnostics.Debug.WriteLine($"Screen Tile Update [{address:X}] = {value:X} ");
             base.DirectWrite(address, value);
             Modified = true;
         }
@@ -31,6 +30,11 @@ namespace GigaBoy.Components.Graphics
             for (int i = 0; i < tilemap.Height; i++) {
                 tm.GetBlockHorizontal(x,y+i,tilemap.Buffer.Slice(y*tilemap.Width+x,tilemap.Width));
             }
+        }
+        public override byte DirectRead(ushort address)
+        {
+            //System.Diagnostics.Debug.WriteLine($"Vram Read from {address:X}");
+            return base.DirectRead(address);
         }
     }
 }

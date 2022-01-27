@@ -8,7 +8,7 @@ using System.Windows.Input;
 
 namespace GigaBoy_WPF.Components
 {
-    public enum EmulatorAction {Start,Step,Restart,Reset,Stop,Crash }
+    public enum EmulatorAction { Start, Step, Restart, Reset, Stop, Crash, Animate, Backlog }
     public class EmulatorCommandRunner : ICommand
     {
         public event EventHandler? CanExecuteChanged;
@@ -39,8 +39,15 @@ namespace GigaBoy_WPF.Components
                 case EmulatorAction.Start:
                     Emulation.Start();
                     break;
+                case EmulatorAction.Animate:
+                    Emulation.Animate();
+                    break;
                 case EmulatorAction.Step:
                     Emulation.Step();
+                    break;
+                case EmulatorAction.Backlog:
+                    if (Emulation.GB is null) break;
+                    lock(Emulation.GB) Emulation.GB.PrintBackLog();
                     break;
                 case EmulatorAction.Crash:
                     if (Emulation.GB is null) break;

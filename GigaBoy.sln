@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31613.86
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaBoy", "GigaBoy\GigaBoy.csproj", "{94369C78-5BEF-4300-B65A-CC27B955227A}"
 EndProject
@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaboyDemo", "GigaboyDemo\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaBoyTests", "GigaBoyTests\GigaBoyTests.csproj", "{DEDFB427-9F00-41ED-83DE-6177CEFE1198}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GigaBoy_WPF", "GigaBoy_WPF\GigaBoy_WPF.csproj", "{8034C65A-E4D8-4636-AF52-3EC444A1FCB7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GigaBoy_WPF", "GigaBoy_WPF\GigaBoy_WPF.csproj", "{8034C65A-E4D8-4636-AF52-3EC444A1FCB7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GigaBoy_WPF_Core", "GigaBoy_WPF_Core\GigaBoy_WPF_Core.csproj", "{FF2FA8A2-4060-4B18-B4F2-C065B069870F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{8034C65A-E4D8-4636-AF52-3EC444A1FCB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8034C65A-E4D8-4636-AF52-3EC444A1FCB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8034C65A-E4D8-4636-AF52-3EC444A1FCB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF2FA8A2-4060-4B18-B4F2-C065B069870F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF2FA8A2-4060-4B18-B4F2-C065B069870F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF2FA8A2-4060-4B18-B4F2-C065B069870F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF2FA8A2-4060-4B18-B4F2-C065B069870F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

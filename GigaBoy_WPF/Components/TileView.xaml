@@ -8,7 +8,7 @@
 			 mc:Ignorable="d" 
 			 d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
 	<Grid>
-        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray">
+        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray" Panel.ZIndex="1">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0"/>
@@ -24,5 +24,35 @@
 				</DataTemplate>
 			</ListView.ItemTemplate>
 		</ListView>
-	</Grid>
+        <Canvas Panel.ZIndex="2" Background="Transparent" ClipToBounds="True">
+            <Rectangle x:Name="v1" 
+                   Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewWidth}"
+                   Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewHeight}"
+                   Fill="Transparent"
+                   Stroke="Blue"
+                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewportVisibility}"
+                   />
+            <Rectangle x:Name="v2" 
+                   Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewWidth}"
+                   Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewHeight}"
+                   Fill="Transparent"
+                   Stroke="Blue"
+                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewportVisibility}"
+                   />
+            <Rectangle x:Name="v3" 
+                   Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewWidth}"
+                   Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewHeight}"
+                   Fill="Transparent"
+                   Stroke="Blue"
+                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewportVisibility}"
+                   />
+            <Rectangle x:Name="v4" 
+                   Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewWidth}"
+                   Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewHeight}"
+                   Fill="Transparent"
+                   Stroke="Blue"
+                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:TileView}}, Path=ViewportVisibility}"
+                   />
+        </Canvas>
+    </Grid>
 </UserControl>

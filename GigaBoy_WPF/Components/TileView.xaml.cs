@@ -56,7 +56,6 @@ namespace GigaBoy_WPF.Components
             DependencyProperty.Register("TileIndexCount", typeof(int), typeof(TileView), new PropertyMetadata(0));
 
 
-
         public TileViewMode TileViewMode
         {
             get { return (TileViewMode)GetValue(TileViewModeProperty); }
@@ -66,7 +65,6 @@ namespace GigaBoy_WPF.Components
         // Using a DependencyProperty as the backing store for TileViewMode.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty TileViewModeProperty =
             DependencyProperty.Register("TileViewMode", typeof(TileViewMode), typeof(TileView), new PropertyMetadata(TileViewMode.TileRange));
-
 
 
         public TilemapBank TilemapBank
@@ -103,7 +101,34 @@ namespace GigaBoy_WPF.Components
         public static readonly DependencyProperty TileSizeProperty =
             DependencyProperty.Register("TileSize", typeof(double), typeof(TileView), new PropertyMetadata(24.0));
 
+        public double ViewWidth
+        {
+            get { return (double)GetValue(ViewWidthProperty); }
+            set { SetValue(ViewWidthProperty, value); }
+        }
 
+        // Using a DependencyProperty as the backing store for TileSize.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ViewWidthProperty =
+            DependencyProperty.Register("ViewWidth", typeof(double), typeof(TileView), new PropertyMetadata(1.0));
+        public double ViewHeight
+        {
+            get { return (double)GetValue(ViewHeightProperty); }
+            set { SetValue(ViewHeightProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for TileSize.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ViewHeightProperty =
+            DependencyProperty.Register("ViewHeight", typeof(double), typeof(TileView), new PropertyMetadata(1.0));
+
+        public Visibility ViewportVisibility
+        {
+            get { return (Visibility)GetValue(ViewportVisibilityProperty); }
+            set { SetValue(ViewportVisibilityProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for TileSize.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ViewportVisibilityProperty =
+            DependencyProperty.Register("ViewportVisibility", typeof(Visibility), typeof(TileView), new PropertyMetadata(Visibility.Collapsed));
 
 
 
@@ -124,6 +149,8 @@ namespace GigaBoy_WPF.Components
         {
             UpdateTileView();
             Emulation.GBFrameReady += Emulation_GBFrameReady;
+            ViewWidth = TileSize * 20;
+            ViewHeight = TileSize * 18;
         }
 
         private void Emulation_GBFrameReady(object? sender, Emulation.GbEventArgs e)
@@ -147,10 +174,28 @@ namespace GigaBoy_WPF.Components
         public void RedrawTilemap() {
             System.Diagnostics.Debug.WriteLine($"Redrawing Tilemap {TilemapBank} with tileset {TileDataBank}");
             if (Emulation.GB is null) return;
-            var tmram = Emulation.GB.TMRAMBanks[(int)TilemapBank];
+            var gb = Emulation.GB;
+            ViewportVisibility = Visibility.Visible;
+            ViewWidth = TileSize * 20;
+            ViewHeight = TileSize * 18;
+            var tmram = gb.TMRAMBanks[(int)TilemapBank];
             byte[] tilemap = new byte[32 * 32];
             tmram.Memory.CopyTo<byte>(tilemap.AsSpan());
             ItemDisplayList.ItemsSource = tilemap;
+
+            var pxl = (TileSize / 8);
+
+            Canvas.SetLeft(v1, gb.PPU.SCX * pxl);
+            Canvas.SetTop(v1, gb.PPU.SCY * pxl);
+
+            Canvas.SetLeft(v2, (gb.PPU.SCX - 32*8) * pxl);
+            Canvas.SetTop(v2, (gb.PPU.SCY) * pxl);
+
+            Canvas.SetLeft(v3, (gb.PPU.SCX) * pxl);
+            Canvas.SetTop(v3, (gb.PPU.SCY - 32 * 8) * pxl);
+
+            Canvas.SetLeft(v4, (gb.PPU.SCX - 32 * 8) * pxl);
+            Canvas.SetTop(v4, (gb.PPU.SCY - 32 * 8) * pxl);
         }
     }
 }
