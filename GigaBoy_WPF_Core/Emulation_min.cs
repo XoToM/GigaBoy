@@ -47,7 +47,7 @@ namespace GigaBoy_WPF_Core
 
         private static void PPU_FrameRendered(object? sender, EventArgs e)
         {
-			Debug.WriteLine("Drawing Frame");
+			//Debug.WriteLine("Drawing Frame");
 			if (GB is null) return;
 			GBFrameReady?.Invoke(sender,new (GB));
         }

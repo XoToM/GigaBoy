@@ -1486,7 +1486,7 @@ namespace GigaBoy.Components
                     }
                 }
             }
-            if (PC == 0x02B7) System.Diagnostics.Debug.WriteLine($"Last PC: 0x{LastPC:X}");
+            //if (PC == 0x02B7) System.Diagnostics.Debug.WriteLine($"Last PC: 0x{LastPC:X}");
             LastPC = PC;
             return Fetch(PC++,false);
         }

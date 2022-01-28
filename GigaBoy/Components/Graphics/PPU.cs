@@ -247,7 +247,7 @@ namespace GigaBoy.Components.Graphics
                         foreach (var s in ScanlineScanner(yWindow))
                             yield return s;
                         //GB.Log($"Scanline = {LY}");
-                        Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
+                        //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
                         if (!WindowEnable) yWindow = false;
                         ++LY;
                     }
@@ -328,7 +328,7 @@ namespace GigaBoy.Components.Graphics
                     continue;
                 }
                 xWindow = xWindow || ((xPixel + 7 == WX) && (WX > 0)) || (WX == 0 && xPixel <= 0);
-                bool doWindow = WindowEnable && yWindow && xWindow;    //Window enable detection is currently broken. It causes an infinite loop, as the FIFO gets cleared during every iterration of this function. This prevents any pixels from getting drawn, as the FIFO doesn't have enough pixel to shift out.
+                bool doWindow = WindowEnable && yWindow && xWindow && false;    //Window enable detection is currently broken. It causes an infinite loop, as the FIFO gets cleared during every iterration of this function. This prevents any pixels from getting drawn, as the FIFO doesn't have enough pixel to shift out.
 
                 fetcher.MoveNext();
                 bool fetcherFinished = fetcher.Current.HasValue;
