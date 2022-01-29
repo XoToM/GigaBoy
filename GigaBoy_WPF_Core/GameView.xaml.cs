@@ -28,7 +28,7 @@ namespace GigaBoy_WPF.Components
 
 		private void Emulation_GBFrameReady(object? sender, Emulation.GbEventArgs e)
 		{
-            Dispatcher.InvokeAsync(() => {
+			Dispatcher.InvokeAsync(() => {
 				Emulation.DrawGB(Emulation.VisibleImage, e.GB.PPU.GetFrame(), 0, 0);
 				ImageBox.Source = Emulation.VisibleImage;
 			});
@@ -40,12 +40,10 @@ namespace GigaBoy_WPF.Components
 			RenderOptions.SetBitmapScalingMode(ImageBox, BitmapScalingMode.NearestNeighbor);
 			RenderOptions.SetEdgeMode(ImageBox, EdgeMode.Aliased);
 
-			//Emulation.Init(@"C:\Users\xotom\Desktop\asm\gb\Tetris.gb");			//  ROM reads LY, which contains an invalid value which never changes (PPU off?). This causes the rom to lock up
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\testRom.gb");
-			//Emulation.Init(@"C:\Users\xotom\Desktop\asm\gb\Pokemon Red.gb");		//  ROM Mapper not implemented yet
 
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
-			Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\dmg_acid2\dmg-acid2.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
+			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\dmg_acid2\dmg-acid2.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\cpu_test.gb");
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\squares.gb");
 
