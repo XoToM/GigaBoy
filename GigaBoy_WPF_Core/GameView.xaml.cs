@@ -50,7 +50,7 @@ namespace GigaBoy_WPF.Components
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\boot_div-dmg0.gb");//Currently broken, as it executes a broken jump instruction. Usually this would result in an error, but in this case the jump instruction creates an infinite loop.
 			//ToDo: Implement the HALT instruction.
 			//Emulation.GB?.AddBreakpoint(0x02B7,new GigaBoy.BreakpointInfo() { BreakOnExecute=true,BreakOnJump=true,BreakOnRead=true });
-			if(Emulation.GB is null)throw new ApplicationException();
+			if(Emulation.GB is null) throw new ApplicationException();
 			Emulation.GB.BreakpointsEnable = false;
 			Emulation.Start();
 

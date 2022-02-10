@@ -183,7 +183,7 @@ namespace GigaBoy.Components.Graphics
         public byte LY
         {
             get { return _ly; }
-            set { Log($"LY = {LY:X}, LYC = {LYC:X}"); _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
+            set { /*Log($"LY = {LY:X}, LYC = {LYC:X}");*/ _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
         }
 
         public byte LYC { get; set; } = 0;
@@ -281,7 +281,6 @@ namespace GigaBoy.Components.Graphics
                 }
             }
         }
-        //public static (int, int) lastPxl = (0, 0);
         public void SetPixel(int x,int y,ColorContainer color) {
             try
             {
@@ -413,10 +412,11 @@ namespace GigaBoy.Components.Graphics
                 while (Enabled)
                 {
                     LY = 0;
+                    PictureProcessor.FullReset();
                     while (LY < 144)
                     {
-                        PictureProcessor.Start();
                         State = PPUStatus.OAMSearch;
+                        PictureProcessor.Start();
                         for (int i = 0; i < 80; i++) {
                             yield return PPUStatus.OAMSearch;
                         }
@@ -425,7 +425,7 @@ namespace GigaBoy.Components.Graphics
                             PictureProcessor.Tick();
                             yield return State;
                         }
-                        Log($"Scanline = {LY}");
+                        //Log($"Scanline = {LY}");
                         //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
                         ++LY;
                     }
