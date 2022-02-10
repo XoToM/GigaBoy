@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GigaBoy_WPF_Core": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\Dawid\\source\\repos\\XoToM\\Gigaboy"
+    }
+  }
+}

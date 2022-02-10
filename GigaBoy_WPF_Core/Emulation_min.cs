@@ -39,6 +39,9 @@ namespace GigaBoy_WPF_Core
 			GB = new (rom);
 			GBStopToken = new ();
 
+			//GB.CPU.Debug = true;
+			//GB.PPU.Debug = true;
+
 			GB.DebugLogging = false;
 			GB.BacklogOnlyLogging = false;
 

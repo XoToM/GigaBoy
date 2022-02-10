@@ -172,7 +172,7 @@ namespace GigaBoy_WPF.Components
             }
         }
         public void RedrawTilemap() {
-            System.Diagnostics.Debug.WriteLine($"Redrawing Tilemap {TilemapBank} with tileset {TileDataBank}");
+            //System.Diagnostics.Debug.WriteLine($"Redrawing Tilemap {TilemapBank} with tileset {TileDataBank}");
             if (Emulation.GB is null) return;
             var gb = Emulation.GB;
             ViewportVisibility = Visibility.Visible;

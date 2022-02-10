@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GigaBoy.Components.Graphics.PPU_V2;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -18,12 +19,14 @@ namespace GigaBoy.Components.Graphics
         public GBInstance GB { get; init; }
         public ColorPalette Palette { get; init; }
         public FIFO FIFO { get; init; }
+        public PictureProcessor PictureProcessor { get; init; }
 
         public IEnumerator<PPUStatus> Renderer { get; protected set; }
 
         protected ColorContainer[] frameBuffer = new ColorContainer[160 * 144];
         protected ColorContainer[] displayBuffer = new ColorContainer[160 * 144];
         public ColorContainer clearColor { get; set; }
+        public bool Debug { get; set; } = false;
         /// <summary>
         /// Invoked when the PPU is finished with rendering a frame. This event is invoked by the emulation thread while GB object is locked, so all children objects of the GBInstance object can be accessed in a thread-safe way without locking.
         /// This also means that if the event handlers bound to this event take too long the emulator will have to wait for them to finish, which can cause lag.
@@ -31,48 +34,61 @@ namespace GigaBoy.Components.Graphics
         public event EventHandler? FrameRendered;
 
         #region LcdcStat
+
         /// <summary>
         /// Bit 7 of LCDC
         /// </summary>
         public bool Enabled { get; set; } = true;
+
         /// <summary>
         /// Bit 6 of LCDC
         /// </summary>
         public bool WindowTileMap { get; set; } = false;
+
         /// <summary>
         /// Bit 5 of LCDC
         /// </summary>
         public bool WindowEnable { get; set; } = false;
+
         /// <summary>
         /// Bit 4 of LCDC
         /// </summary>
         public bool TileData { get; set; } = true;
+
         /// <summary>
         /// Bit 3 of LCDC
+        /// Tells the ppu which tilemap to fetch its characters from.
+        /// 0 = 9800-9BFF
+        /// 1 = 9C00-9FFF
         /// </summary>
         public bool BackgroundTileMap { get; set; } = false;
+
         /// <summary>
         /// Bit 2 of LCDC
         /// false = 8x8 sprites
         /// true = 8x16 sprites
         /// </summary>
         public bool ObjectSize { get; set; } = false;
+
         /// <summary>
         /// Bit 1 of LCDC
         /// false = sprites disabled
         /// true = sprites enabled
         /// </summary>
         public bool ObjectEnable { get; set; } = false;
+
         /// <summary>
         /// Bit 0 of LCDC
         /// false = Background and Window are not displayed
         /// true = Background and Window are displayed if their correspoding enable bits are set
         /// </summary>
         public bool BGWindowPriority { get; set; } = true;
+
         /// <summary>
         /// Bit 0 and 1 of STAT
         /// </summary>
-        public PPUStatus State { get; protected set; } = PPUStatus.VBlank;
+        public PPUStatus State { get; set; } = PPUStatus.VBlank;
+
         private bool _mode0InterruptEnable;
         public bool Mode0InterruptEnable
         {
@@ -158,7 +174,8 @@ namespace GigaBoy.Components.Graphics
         #endregion
 
         #region Registers
-        public byte SCX { get; set; } = 0;
+        private byte _scx = 0;
+        public byte SCX { get=>_scx; set { /*GB.Log($"Setting SCX ({_scx:X}) to {value:X}");*/ _scx = value; } }
         public byte SCY { get; set; } = 0;
         public byte WX { get; set; } = 0;
         public byte WY { get; set; } = 0;
@@ -166,7 +183,7 @@ namespace GigaBoy.Components.Graphics
         public byte LY
         {
             get { return _ly; }
-            set { GB.Log($"LY = {LY:X}, LYC = {LYC:X}"); _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
+            set { Log($"LY = {LY:X}, LYC = {LYC:X}"); _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
         }
 
         public byte LYC { get; set; } = 0;
@@ -177,6 +194,7 @@ namespace GigaBoy.Components.Graphics
             Palette = new();
             Renderer = Scanner().GetEnumerator();
             FIFO = new(this);
+            PictureProcessor = new(this);
         }
         #region ScanlineRendering
         /// <summary>
@@ -196,7 +214,7 @@ namespace GigaBoy.Components.Graphics
         }
         protected void FrameDone()
         {
-            GB.Log("Frame Done!");
+            Log("Frame Done!");
             lock (this) {
                 var dbuffer = displayBuffer;
                 displayBuffer = frameBuffer;
@@ -229,7 +247,7 @@ namespace GigaBoy.Components.Graphics
                 GB.Error(e);
             }
         }
-        protected IEnumerable<PPUStatus> Scanner() {
+        protected IEnumerable<PPUStatus> ScannerL() {
             while (true)
             {
                 Array.Fill(frameBuffer, clearColor);
@@ -246,7 +264,7 @@ namespace GigaBoy.Components.Graphics
                         if (LY == WY && WindowEnable) yWindow = true;
                         foreach (var s in ScanlineScanner(yWindow))
                             yield return s;
-                        //GB.Log($"Scanline = {LY}");
+                        //Log($"Scanline = {LY}");
                         //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
                         if (!WindowEnable) yWindow = false;
                         ++LY;
@@ -256,7 +274,7 @@ namespace GigaBoy.Components.Graphics
                     FrameDone();
                     for (int i = 0; i < 10; i++)
                     {
-                        //GB.Log($"VBlank = {LY}");
+                        //Log($"VBlank = {LY}");
                         yield return PPUStatus.VBlank;
                         ++LY;
                     }
@@ -264,11 +282,11 @@ namespace GigaBoy.Components.Graphics
             }
         }
         //public static (int, int) lastPxl = (0, 0);
-        protected void SetPixel(int x,int y,ColorContainer color) {
+        public void SetPixel(int x,int y,ColorContainer color) {
             try
             {
                 //lastPxl = (x, y);
-                //GB.Log($"Pixel Set at ({x}, {y})");
+                //Log($"Pixel Set at ({x}, {y})");
                 var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
                 screen[y, x] = color;
             }
@@ -309,7 +327,7 @@ namespace GigaBoy.Components.Graphics
 
             stat = PPUStatus.GenerateFrame;
 
-            int xPixel = 0 - (SCX & 7);
+            byte xPixel = (byte)((byte)(0 - (byte)(SCX & 7)) % 8);
 
             bool xWindow = false;
             bool usingWindow = false;
@@ -367,7 +385,7 @@ namespace GigaBoy.Components.Graphics
             for (int i = 0; i < 456 - delayDots; i++) {
                 yield return stat;
             }
-            GB.Log("Scanline Done");
+            Log("Scanline Done");
             yield break;
         }
         protected ushort calculateBackgroundTileMapAddress()
@@ -380,6 +398,49 @@ namespace GigaBoy.Components.Graphics
 
         }
 
+        #endregion
+        #region ScanlineAlternativeRendering
+        protected IEnumerable<PPUStatus> Scanner()
+        {
+            while (true)
+            {
+                Array.Fill(frameBuffer, clearColor);
+                while (!Enabled)
+                {
+                    yield return State;
+                }
+                PictureProcessor.Reset();
+                while (Enabled)
+                {
+                    LY = 0;
+                    while (LY < 144)
+                    {
+                        PictureProcessor.Start();
+                        State = PPUStatus.OAMSearch;
+                        for (int i = 0; i < 80; i++) {
+                            yield return PPUStatus.OAMSearch;
+                        }
+                        State = PPUStatus.GenerateFrame;
+                        for (int i = 0; i < 376; i++) {
+                            PictureProcessor.Tick();
+                            yield return State;
+                        }
+                        Log($"Scanline = {LY}");
+                        //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
+                        ++LY;
+                    }
+                    GB.CPU.SetInterrupt(InterruptType.VBlank);
+                    if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+                    FrameDone();
+                    for (int i = 0; i < 10; i++)
+                    {
+                        //Log($"VBlank = {LY}");
+                        yield return PPUStatus.VBlank;
+                        ++LY;
+                    }
+                }
+            }
+        }
         #endregion
         #region BlockRendering
         public void GetTileMapBlock(int x,int y, Span2D<byte> tiles,ushort tileMapAddr) {
@@ -443,5 +504,17 @@ namespace GigaBoy.Components.Graphics
             bitmap.UnlockBits(bdata);
         }
         #endregion
+
+        public void Log(string text)
+        {
+            if (Debug) GB.Log(text);
+        }
+        public byte Fetch(ushort address) { //TODO: Add OAM to this check
+            if (address < 0x8000 || address > 0x9FFF) {
+                GB.Error($"PPU attempted to fetch an address outside of VRam ({address:X})");
+                throw new AccessViolationException($"PPU attempted to fetch an address outside of VRam ({address:X})");
+            }
+            return GB.MemoryMapper.GetByte(address,true);
+        }
     }
 }
