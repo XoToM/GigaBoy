@@ -21,7 +21,6 @@ namespace GigaBoy.Components.Mappers
         public bool WasCharArea2Modified { get; set; } = false;
         public bool WasCharArea3Modified { get; set; } = false;
         public int SRamBankOffset { get; set; } = 0;
-        public int RomBankOffset { get; set; } = 0;
 
         public int Count => ushort.MaxValue + 1;
 
@@ -176,7 +175,7 @@ namespace GigaBoy.Components.Mappers
         }
         public virtual byte DirectRead(ushort address)
         {
-            return RomImage[address];
+            return DirectRead((int)address);
         }
         public virtual byte DirectRead(int address)
         {
@@ -187,6 +186,10 @@ namespace GigaBoy.Components.Mappers
             DirectWrite(address,value);
         }
         public virtual void DirectWrite(ushort address, byte value)
+        {
+            DirectWrite((int)address,value);
+        }
+        public virtual void DirectWrite(int address, byte value)
         {
             return;
         }
@@ -246,27 +249,22 @@ namespace GigaBoy.Components.Mappers
         {
             throw new NotImplementedException();
         }
-
         public void Insert(int index, byte item)
         {
             SetByte((ushort)index, item);
         }
-
         public void RemoveAt(int index)
         {
             SetByte((ushort)index, 0);
         }
-
         public void Add(byte item)
         {
             throw new NotImplementedException();
         }
-
         public void Clear()
         {
             throw new NotImplementedException("Cannot clear a memory map.");
         }
-
         public bool Contains(byte item)
         {
             foreach (byte b in this) {
@@ -274,19 +272,16 @@ namespace GigaBoy.Components.Mappers
             }
             return false;
         }
-
         public void CopyTo(byte[] array, int arrayIndex)
         {
             for (int i = 0; i <= ushort.MaxValue; i++) {
                 array[arrayIndex + i] = GetByte((ushort)i);
             }
         }
-
         public bool Remove(byte item)
         {
             throw new NotImplementedException("Cannot remove bytes from ROM");
         }
-
         public IEnumerator<byte> GetEnumerator()
         {
             for (int i = 0; i <= ushort.MaxValue; i++) {

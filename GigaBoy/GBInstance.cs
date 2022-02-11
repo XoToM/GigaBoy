@@ -112,9 +112,9 @@ namespace GigaBoy
                 Debug.WriteLine("   --  Backlog  --");
                 while (LogBacklog.Count != 0) Debug.WriteLine(LogBacklog.Dequeue());
                 LogBacklog.Clear();
-                Debug.WriteLine("   --  Register States  --   ");
-                Debug.WriteLine($"AF={CPU.AF:X}  BC={CPU.BC:X}  DE={CPU.DE:X}  HL={CPU.HL:X}  SP={CPU.SP:X}  PC={CPU.PC:X}  LastPC={CPU.LastPC:X}\n\n");
             }
+            Debug.WriteLine("   --  Register States  --   ");
+            Debug.WriteLine($"AF={CPU.AF:X}  BC={CPU.BC:X}  DE={CPU.DE:X}  HL={CPU.HL:X}  SP={CPU.SP:X}  PC={CPU.PC:X}  LastPC={CPU.LastPC:X}\n\n");
         }
         protected internal void BreakpointHit() {
             Debug.WriteLine("Breakpoint Hit!");

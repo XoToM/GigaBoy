@@ -8,8 +8,12 @@ namespace GigaBoy.Components.Mappers
 {
     public class MBC1 : MemoryMapper
     {
+        public int RomXBank { get; set; } = 1;
+        public int ExpectedRomSize;
+        public byte[,] Banks { get; protected set; }  
+        public int BankCount { get; protected set; }
         public MBC1(GBInstance gb,byte[] romImage,bool battery) : base(gb,romImage,battery) {
-            byte romSizeByte = DirectRead(0x148);
+            byte romSizeByte = romImage[0x148];
             int romSize;
             switch (romSizeByte) {
                 case 0x54://Likely incorrect, but I included it just in case its used by someone somewhere.
@@ -33,9 +37,12 @@ namespace GigaBoy.Components.Mappers
                 RomImage.CopyTo(rom1.AsSpan());
                 RomImage = rom1;
             }
+            ExpectedRomSize = romSize;
+            SplitIntoBanks();
         }
 
-        public override void DirectWrite(ushort address,byte value) {
+        public override void DirectWrite(int address,byte value) {
+            if (address < 0) return;
             if (address < 0x2000)
             {
                 if ((value & 0x0F) == 0x0A)
@@ -52,10 +59,10 @@ namespace GigaBoy.Components.Mappers
                 }
                 return;
             }
-            if (address < 0x4000) {
+            if (address <= 0x4000) {
+                value = (byte)(value & 0x1F);
                 if (value == 0) value = 1;
-                RomBankOffset = (RomBankOffset & 0x307FFF) | ((value&0x1F)<<15);
-                RomBankOffset = RomBankOffset % RomImage.Length;
+                RomXBank = value % ((ExpectedRomSize / 0x4000) - 1);
                 return;
             }
             throw new NotImplementedException("Ram banking, Large Rom Banking, and mode switching has not been implemented yet.");
@@ -64,6 +71,33 @@ namespace GigaBoy.Components.Mappers
                 //RomBankOffset = RomBankOffset % RomImage.Length;
                 //return;
             //}
+        }
+        public override byte DirectRead(int address)
+        {
+            if (address < 0) return 0;
+            if (address < 0x4000) {
+                return Banks[0,address];
+            }
+            if (address < 0x8000) {
+                return Banks[RomXBank,address - 0x4000];
+            }
+            if (address < 0xA000) {
+                return 0;
+            }
+            if (address < 0xC000) {
+                throw new NotImplementedException("Cartridge RAM not implemented yet");
+            }
+            return 0;
+        }
+        public virtual void SplitIntoBanks() {
+            BankCount = ExpectedRomSize / 0x4000;
+            Banks = new byte[BankCount,0x4000];
+            for (int i = 0; i < BankCount; i++) {
+                var window = RomImage.AsSpan(i*0x4000, 0x4000);
+                for (int j = 0; j < 0x4000;j++) {
+                    Banks[i, j] = window[j];
+                }
+            }
         }
     }
 }

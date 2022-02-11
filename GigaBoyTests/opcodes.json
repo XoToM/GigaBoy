@@ -1216,7 +1216,7 @@
 					"immediate": true
 				},
 				{
-					"name": "r8",
+					"name": "d8",
 					"bytes": 1,
 					"immediate": true
 				}
