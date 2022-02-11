@@ -60,5 +60,15 @@ namespace GigaBoy_WPF.Components
 		{
 			Emulation.GBFrameReady -= Emulation_GBFrameReady;
 		}
+
+		private void UserControl_Drop(object sender, DragEventArgs e)
+		{
+			var file = (string[])e.Data.GetData(DataFormats.FileDrop, true);
+			if (file is null || file.Length < 1) return;
+			if (!System.IO.File.Exists(file[0])) return;
+			Emulation.Stop();
+			Emulation.Init(file[0]);
+			Emulation.Start();
+		}
 	}
 }
