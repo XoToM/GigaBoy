@@ -52,6 +52,7 @@ namespace GigaBoy_WPF.Components
 			//Emulation.GB?.AddBreakpoint(0x02B7,new GigaBoy.BreakpointInfo() { BreakOnExecute=true,BreakOnJump=true,BreakOnRead=true });
 			if(Emulation.GB is null) throw new ApplicationException();
 			Emulation.GB.BreakpointsEnable = false;
+			Emulation.GB.DebugLogging = true;
 			Emulation.Start();
 
 		}

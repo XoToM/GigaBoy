@@ -40,11 +40,11 @@ namespace GigaBoy_WPF_Core
 			GBStopToken = new ();
 
 			//GB.CPU.Debug = true;
-			GB.PPU.Debug = true;
+			//GB.PPU.Debug = true;
 
 			GB.DebugLogging = true;
 			GB.BacklogOnlyLogging = false;
-
+			GB.PPU.clearColor = new(255,0,0);
             GB.PPU.FrameRendered += PPU_FrameRendered;
 		}
 

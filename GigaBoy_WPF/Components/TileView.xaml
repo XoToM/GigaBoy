@@ -8,7 +8,7 @@
 			 mc:Ignorable="d" 
 			 d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
 	<Grid>
-        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray" Panel.ZIndex="1">
+        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" x:Name="ItemDisplayList" Margin="0" Padding="0" Background="DimGray" Panel.ZIndex="1" HorizontalContentAlignment="Left" VerticalContentAlignment="Top">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0"/>

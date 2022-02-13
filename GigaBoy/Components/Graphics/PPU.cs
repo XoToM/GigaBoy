@@ -514,6 +514,7 @@ namespace GigaBoy.Components.Graphics
                 GB.Error($"PPU attempted to fetch an address outside of VRam ({address:X})");
                 throw new AccessViolationException($"PPU attempted to fetch an address outside of VRam ({address:X})");
             }
+            //if (address == 0x9800) GB.Log("Attempting!");
             return GB.MemoryMapper.GetByte(address,true);
         }
     }
