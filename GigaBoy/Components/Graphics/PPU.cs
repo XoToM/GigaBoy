@@ -18,14 +18,14 @@ namespace GigaBoy.Components.Graphics
     {
         public GBInstance GB { get; init; }
         public ColorPalette Palette { get; init; }
-        public FIFO FIFO { get; init; }
         public PictureProcessor PictureProcessor { get; init; }
+        public OamRam OAM { get; init; }
 
         public IEnumerator<PPUStatus> Renderer { get; protected set; }
 
         protected ColorContainer[] frameBuffer = new ColorContainer[160 * 144];
         protected ColorContainer[] displayBuffer = new ColorContainer[160 * 144];
-        public ColorContainer clearColor { get; set; }
+        public ColorContainer ClearColor { get; set; }
         public bool Debug { get; set; } = false;
         /// <summary>
         /// Invoked when the PPU is finished with rendering a frame. This event is invoked by the emulation thread while GB object is locked, so all children objects of the GBInstance object can be accessed in a thread-safe way without locking.
@@ -193,8 +193,8 @@ namespace GigaBoy.Components.Graphics
             GB = gb;
             Palette = new();
             Renderer = Scanner().GetEnumerator();
-            FIFO = new(this);
             PictureProcessor = new(this);
+            OAM = new OamRam(GB);
         }
         #region ScanlineRendering
         /// <summary>
@@ -221,7 +221,7 @@ namespace GigaBoy.Components.Graphics
                 frameBuffer = dbuffer;
             }
             FrameRendered?.Invoke(this,EventArgs.Empty);
-            Array.Fill(frameBuffer, clearColor);
+            Array.Fill(frameBuffer, ClearColor);
             _frameUpdateFinished = true;
         }
         private bool _frameUpdateFinished = false;
@@ -245,40 +245,6 @@ namespace GigaBoy.Components.Graphics
             }
             catch (Exception e) {
                 GB.Error(e);
-            }
-        }
-        protected IEnumerable<PPUStatus> ScannerL() {
-            while (true)
-            {
-                Array.Fill(frameBuffer, clearColor);
-                while (!Enabled)
-                {
-                    yield return State;
-                }
-                while (Enabled)
-                {
-                    LY = 0;
-                    bool yWindow = false;
-                    while (LY < 144)
-                    {
-                        if (LY == WY && WindowEnable) yWindow = true;
-                        foreach (var s in ScanlineScanner(yWindow))
-                            yield return s;
-                        //Log($"Scanline = {LY}");
-                        //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
-                        if (!WindowEnable) yWindow = false;
-                        ++LY;
-                    }
-                    GB.CPU.SetInterrupt(InterruptType.VBlank);
-                    if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
-                    FrameDone();
-                    for (int i = 0; i < 10; i++)
-                    {
-                        //Log($"VBlank = {LY}");
-                        yield return PPUStatus.VBlank;
-                        ++LY;
-                    }
-                }
             }
         }
         public void SetPixel(int x,int y,ColorContainer color) {
@@ -316,94 +282,12 @@ namespace GigaBoy.Components.Graphics
                 }
             }
         }
-        public IEnumerable<PPUStatus> ScanlineScanner(bool yWindow) {
-            int delayDots = 0;
-            var stat = PPUStatus.OAMSearch;
-            if (Mode2InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
-            for (; delayDots < 80; delayDots++) {
-                yield return stat;
-            }
 
-            stat = PPUStatus.GenerateFrame;
-
-            byte xPixel = (byte)((byte)(0 - (byte)(SCX & 7)) % 8);
-
-            bool xWindow = false;
-            bool usingWindow = false;
-            ushort backgroundAddress = calculateBackgroundTileMapAddress();
-            ushort windowAddress = calculateWindowTileMapAddress();
-            IEnumerator<(byte,byte)?> fetcher = FIFO.FetchTileData(backgroundAddress++,SCY+LY,xPixel).GetEnumerator();
-            //bool fetcherFinished = false;
-
-            while (xPixel < 160) {
-                if (!Enabled) {
-                    if (xPixel > 0)
-                        SetPixel(xPixel, LY, clearColor);
-                    ++xPixel;
-                    ++delayDots;
-                    yield return stat;
-                    continue;
-                }
-                xWindow = xWindow || ((xPixel + 7 == WX) && (WX > 0)) || (WX == 0 && xPixel <= 0);
-                bool doWindow = WindowEnable && yWindow && xWindow && false;    //Window enable detection is currently broken. It causes an infinite loop, as the FIFO gets cleared during every iterration of this function. This prevents any pixels from getting drawn, as the FIFO doesn't have enough pixel to shift out.
-
-                fetcher.MoveNext();
-                bool fetcherFinished = fetcher.Current.HasValue;
-
-                if (doWindow && (!usingWindow)) {   //When doWindow is true this always ends up true, which causes the ppu to lockup, as the fetcher gets reset on every ppu tick. 
-                    usingWindow = true;
-                    FIFO.ClearLastBits();
-                    fetcher = FIFO.FetchTileData(windowAddress++,LY - WY, xPixel).GetEnumerator();
-                    fetcherFinished = false;
-                }
-                if ((!WindowEnable) || WY > LY || WX > xPixel) { 
-                    usingWindow = false;
-                    xWindow = false;
-                }
-
-                if (FIFO.BackgroundPixels <= 8 && fetcherFinished) {
-#pragma warning disable CS8629 
-                    var pushPixel = fetcher.Current.Value;  //fetcherFinished will only be true when this value is not null, but VS complains for some reason, so I have to disable the nullable warning here. This will never get reached if the value is null.
-#pragma warning restore CS8629 
-                    FIFO.EnqueuePixels(pushPixel);  //Its not completely out of the question that this line might be overriding the first row of pixels with the second, before the first even has a chance to shift anyting out. Might have to do a BackgroundPixels == 0 check inside the method, and set the most significant part of the queue to the color instead of the least significant if its true.
-                    fetcher = FIFO.FetchTileData(usingWindow ? windowAddress++ : backgroundAddress,usingWindow?WY+LY:SCX+LY, xPixel).GetEnumerator();
-                    ++backgroundAddress;
-                }
-                if (FIFO.BackgroundPixels > 8) {
-                    var pixel = FIFO.ShiftOut();
-                    if (xPixel >= 0 && BGWindowPriority) {
-                        SetPixel(xPixel, LY, pixel);
-                    }
-                    ++xPixel;
-                }
-                ++delayDots;
-                yield return stat;
-            }
-            stat = PPUStatus.HBlank;
-            if (Mode0InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
-            for (int i = 0; i < 456 - delayDots; i++) {
-                yield return stat;
-            }
-            Log("Scanline Done");
-            yield break;
-        }
-        protected ushort calculateBackgroundTileMapAddress()
-        {
-            return (ushort)(0x9800 | ((BackgroundTileMap ? 1 : 0) << 10) | (((SCY + LY) & 0xF8) << 2) | ((SCX & 0xF8) >> 3));
-        }
-        protected ushort calculateWindowTileMapAddress()
-        {
-            return (ushort)(0x9800 | ((WindowTileMap?1:0) << 10) | (((LY - WY) & 0xf8) << 2));
-
-        }
-
-        #endregion
-        #region ScanlineAlternativeRendering
         protected IEnumerable<PPUStatus> Scanner()
         {
             while (true)
             {
-                Array.Fill(frameBuffer, clearColor);
+                Array.Fill(frameBuffer, ClearColor);
                 while (!Enabled)
                 {
                     yield return State;
@@ -445,7 +329,7 @@ namespace GigaBoy.Components.Graphics
         #region BlockRendering
         public void GetTileMapBlock(int x,int y, Span2D<byte> tiles,ushort tileMapAddr) {
             var tmram = GB.TMRAMBanks[(tileMapAddr==0x9C00)?1:0];
-            y = y * 32;
+            y *= 32;
             for (int v = 0; v < tiles.Height; v++) {
                 for (int u = 0; u < tiles.Width; u++) {
                     ushort addr = (ushort)(((u + x)&31) + ((y + v)&31) * 32);

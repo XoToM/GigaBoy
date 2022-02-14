@@ -18,7 +18,6 @@ namespace GigaBoy_WPF_Core
 		public static GBInstance? GB { get; private set; }
 		static string currentRom = String.Empty;
 		public static WriteableBitmap VisibleImage { get; private set; } = new(160, 144, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null);
-		static CancellationTokenSource? GBStopToken;
 
 		public static event EventHandler<GbEventArgs>? GBFrameReady;
 
@@ -37,14 +36,13 @@ namespace GigaBoy_WPF_Core
 			Stop();
 			currentRom = rom;
 			GB = new (rom);
-			GBStopToken = new ();
 
 			//GB.CPU.Debug = true;
 			//GB.PPU.Debug = true;
 
 			GB.DebugLogging = true;
 			GB.BacklogOnlyLogging = false;
-			GB.PPU.clearColor = new(255,0,0);
+			GB.PPU.ClearColor = new(255,0,0);
             GB.PPU.FrameRendered += PPU_FrameRendered;
 		}
 
@@ -86,7 +84,7 @@ namespace GigaBoy_WPF_Core
 				Runner();
 			}
 		}
-		static async void Runner() {
+		static void Runner() {
 			if (GB is null) return;
 			Task.Run(()=> { Debug.WriteLine("Emulation Started!"); GB.MainLoop(false); Debug.WriteLine("Emulation Ended!"); });
 		}

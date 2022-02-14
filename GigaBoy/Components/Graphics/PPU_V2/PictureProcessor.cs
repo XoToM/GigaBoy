@@ -10,6 +10,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 	{
 		public GBInstance GB { get; init; }
 		public PPU PPU { get; init; }
+		public OamRam OAM { get => PPU.OAM; }
 
 		public enum FifoState { Stopped, DummyT, Dummy0, Dummy1, Character, Plane0, Plane1, Sprite, Wait }
 		public enum WindowMode { Off, Rendering, Glitch_A6 }
@@ -33,7 +34,11 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 
 		public int BackgroundPixels { get; protected set; } = 0;
 		public (uint,uint) backgroundQueue = (0,0);
-		public (byte, PaletteType)[] spriteQueue = new (byte, PaletteType)[8];
+
+		public FixedSizeQueue<SpritePixelData> spritePixelQueue = new(8);
+
+		public bool performBackgroundPush = false;
+		public (byte, byte) backgroundPushData = (0, 0);
 
 		public PictureProcessor(PPU ppu) {
 			PPU = ppu;
@@ -156,7 +161,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 						break;
 					case WindowMode.Glitch_A6:
 						throw new NotImplementedException();
-						break;
+						//break;
 				}
 				
 			}
@@ -188,7 +193,6 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 				}
 			}
 		}
-		int wd = 0;
 		public void FIFO_W() {
 			byte ntbyte = PPU.Fetch(fetcher_address);
 			byte ysub = (byte)(LY-PPU.WY);// (LY+WY) causes graphical glitches when the window is moving? Changing this to (LY-WY) removes them, but it intruduces small black artifacts on the window? And the artifacts are evenly spaced??
@@ -219,11 +223,8 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void FIFO_1() {
 			character_plane2 = PPU.Fetch((ushort)(character_address + 1));
-			if (!PPU.BGWindowPriority) {
-				character_plane1 = 0;
-				character_plane2 = 0;
-			}
-			EnqueuePixels(character_plane1, character_plane2);
+			backgroundPushData = (character_plane1, character_plane2);
+			performBackgroundPush = true;
 		}
 		public void FIFO_S() {
 			if (spritePhaseDelay != 0) {
@@ -231,7 +232,6 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 				timerToggle = false;
 				return;
 			}
-
 		}
 
 		public void FIFO_BackgroundLatch()
@@ -256,6 +256,13 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 				}
 			}
 		}
+		public void FIFO_Push() {
+			if (BackgroundPixels <= 8 && performBackgroundPush) {
+				performBackgroundPush = false;
+				EnqueuePixels(backgroundPushData.Item1, backgroundPushData.Item2);
+			}
+		}
+		
 		public void IncrementFetcherAddress()
 		{
 			fetcher_address = (ushort)((fetcher_address & 0b1111111111100000) | ((fetcher_address + 1) & 0b0000000000011111));
@@ -294,17 +301,9 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		public void ShiftOut()
 		{
 			byte color = DequeuePixel();
+			if (!PPU.BGWindowPriority) color = 0;
 			//System.Diagnostics.Debug.WriteLine($"queue: {Convert.ToString(backgroundQueue,2)}, pxl: {Convert.ToString(color,2)} ({color}) ");
 			var palette = PaletteType.Background;
-			/*      //Legacy Sprite Mixing Code
-			if (spriteQueue[0].Item1 != 0)
-			{
-				color = spriteQueue[0].Item1;
-				palette = spriteQueue[0].Item2;
-			}
-			for (int i = 1; i < 8; i++) spriteQueue[i - 1] = spriteQueue[i];
-			spriteQueue[7] = (0, PaletteType.Background);
-			*/
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 		}
 		public void SetPixel(ColorContainer pixel) {
@@ -335,17 +334,17 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void Reset()
 		{
-			wd = 0;
 			timerToggle = true;
+			performBackgroundPush = false;
 			windowCheck = WindowCheckMode.Off;
 			xPixel = 0;
 			spritePhaseDelay = 0;
 			ClearPixelQueue();
+			spritePixelQueue.Clear();
 			State = FifoState.Stopped; 
 			WindowState = WindowMode.Off;
 
-			var cv = ((byte)0, PaletteType.Background);
-			Array.Fill(spriteQueue, cv);
+			spritePixelQueue.Clear();
 		}
 		public void Start()
 		{

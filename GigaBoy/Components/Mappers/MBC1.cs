@@ -12,23 +12,20 @@ namespace GigaBoy.Components.Mappers
         public int ExpectedRomSize;
         public byte[,] Banks { get; protected set; }  
         public int BankCount { get; protected set; }
-        public MBC1(GBInstance gb,byte[] romImage,bool battery) : base(gb,romImage,battery) {
+#pragma warning disable CS8618 
+        public MBC1(GBInstance gb,byte[] romImage,bool battery) : base(gb,romImage,battery) {   //  Visual Studio complains about the Banks property not being set, but it does get set in the SplitIntoBanks method which is called at the end of the constructor. Visual Studio just doesn't detect this.
+#pragma warning restore CS8618 
             byte romSizeByte = romImage[0x148];
-            int romSize;
-            switch (romSizeByte) {
-                case 0x54://Likely incorrect, but I included it just in case its used by someone somewhere.
-                    romSize = 1572864;
-                    break;
-                case 0x52://Likely incorrect, but I included it just in case its used by someone somewhere.
-                    romSize = 1153434;
-                    break;
-                case 0x53://Likely incorrect, but I included it just in case its used by someone somewhere.
-                    romSize = 1258292;
-                    break;
-                default:
-                    romSize = 0x8000 << romSizeByte;
-                    break;
-            }
+            var romSize = romSizeByte switch
+            {
+                //Likely incorrect, but I included it just in case its used by someone somewhere.
+                0x54 => 1572864,
+                //Likely incorrect, but I included it just in case its used by someone somewhere.
+                0x52 => 1153434,
+                //Likely incorrect, but I included it just in case its used by someone somewhere.
+                0x53 => 1258292,
+                _ => 0x8000 << romSizeByte
+            };
             if (RomImage.Length < romSize)
             {
                 gb.Log("Rom file is smaller than expected: Padding rom with 0x00 bytes. Real gameboy wouldn't care.");
