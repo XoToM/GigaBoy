@@ -109,7 +109,7 @@ namespace GigaBoy.Components.Mappers
                         return 0xFF;
                 }
             }
-            return 0;
+            return 0xFF;
         }
         public void SetByte(ushort address, byte value)
         {
@@ -134,7 +134,7 @@ namespace GigaBoy.Components.Mappers
             if (address < 0xC000) { SRam.Write((ushort)(address - 0xA000 + SRamBankOffset), value); return; }
             if (address < 0xE000) { GB.WRam.Write((ushort)(address - 0xC000), value); return; }
             if (address < 0xFE00) { GB.WRam.Write((ushort)(address - 0xE000), value); return; }
-            if (address < 0xFF00) return;//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
+            if (address < 0xFF00) { GB.PPU.OAM.Write((ushort)(address - 0xFE00), value); return; }//    OAM and an unused area use these addresses. OAM hasn't been implemented yet, and is currently unusable.
             if ((address & 0xFF00) == 0xFF00)
             {
                 switch (address)

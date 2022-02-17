@@ -22,32 +22,36 @@ namespace GigaBoy.Components
             GB = gb;
             Memory = new byte[capacity];
         }
+        public virtual bool Available()
+        {
+            //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
+            //TODO: Uncomment this when DMA is finished.
+            //if(Type!=RAMType.HRAM&&DMA.Active)return false;
+            return Type switch
+            {
+                RAMType.SRAM or RAMType.RAM or RAMType.HRAM => true,
+                RAMType.OAM => GB.PPU.Enabled && (GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank),
+                _ => false,
+            };
+        }
+
         public virtual byte Read(ushort address)
         {
             if(Available() && Reading) return DirectRead(address);
             return DisabledReadData;
         }
-        public virtual bool Available() {
-            //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
-            //TODO: Uncomment this when DMA is finished.
-            //if(Type!=RAMType.HRAM&&DMA.Active)return false;
-            switch (Type)
-            {
-                case RAMType.SRAM:
-                case RAMType.RAM:
-                case RAMType.HRAM:
-                    return true;
-                case RAMType.OAM:
-                    return GB.PPU.Enabled&&(GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank);
-                default:
-                    return false;
-            }
+        public virtual byte Read(int address)
+        {
+            return Read((ushort)address);
         }
         public virtual byte DirectRead(ushort address)
         {
             if (address >= Size)
                 GB.Error($"Invalid Read [{address:X}]");
             return Memory[address];
+        }
+        public virtual byte DirectRead(int address) {
+            return DirectRead((ushort)address);
         }
         public virtual Span<byte> DirectRead(ushort address,ushort count)
         {
@@ -69,11 +73,18 @@ namespace GigaBoy.Components
                 GB.Log($"Writing to {Type}, while {Type} is disabled");
             }
         }
+        public virtual void Write(int address, byte value) {
+            Write((ushort)address, value);
+        }
         public virtual void DirectWrite(ushort address, byte value)
         {
             if (address >= Size)
                 GB.Error($"Invalid Write [{address:X}] = {value:X}");
             Memory[address] = value;
+        }
+        public virtual void DirectWrite(int address, byte value)
+        {
+            DirectWrite((ushort)address, value);
         }
     }
 }

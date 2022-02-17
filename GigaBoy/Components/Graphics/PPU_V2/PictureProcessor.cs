@@ -15,6 +15,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		public enum FifoState { Stopped, DummyT, Dummy0, Dummy1, Character, Plane0, Plane1, Sprite, Wait }
 		public enum WindowMode { Off, Rendering, Glitch_A6 }
 		private enum WindowCheckMode { Off, Preparing, Active }
+		private enum SpriteFetcherMode { Off, TileId, Plane1, Plane2 }
 
 		public bool Debug { get => PPU.Debug; set => PPU.Debug = value; }
 		public byte LY { get => PPU.LY; }
@@ -28,6 +29,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		public bool WindowYCondition = false;
 		public int WindowLYCounter = 0;
 		private bool timerToggle = true;
+
 		private WindowCheckMode windowCheck = WindowCheckMode.Off;
 		public FifoState State = FifoState.Stopped;
 		public WindowMode WindowState = WindowMode.Off;
@@ -36,9 +38,16 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		public (uint,uint) backgroundQueue = (0,0);
 
 		public FixedSizeQueue<SpritePixelData> spritePixelQueue = new(8);
+		public FixedSizeQueue<OamSprite> scanlineSprites = new(10);
 
 		public bool performBackgroundPush = false;
 		public (byte, byte) backgroundPushData = (0, 0);
+
+
+		byte spritePlane1;
+		byte spritePlane2;
+		public ushort sprite_character_address;
+		SpriteFetcherMode spriteFetcherStatus = SpriteFetcherMode.Off;
 
 		public PictureProcessor(PPU ppu) {
 			PPU = ppu;
@@ -48,122 +57,160 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 
 		public void Tick()
 		{
-			if (!PPU.WindowEnable) windowCheck = WindowCheckMode.Off;
-			if (BackgroundPixels > 8) ShiftOut();
-			if (windowCheck == WindowCheckMode.Active) {    //This check and several other checks in this function have been added to allow the WX=00 glitch to happen.
-				if (WindowYCondition && PPU.WindowEnable && PPU.WX == xPixel+15)    //ToDo: Fix Important window rendering bug: xPixel+15 is a temporary patch for the window rendering glitch. It should be xPixel+7. The bug is that the window is being rendered 8 pixels to the right of where it should be, and it leaves a big white stripe in between the actual and the correct spot. 
-				{       //The WX=A6 glitch is currently not supported.
-					windowCheck = WindowCheckMode.Off;
-					WindowState = WindowMode.Rendering;
-					State = FifoState.DummyT;
-					timerToggle = true;
-					ClearLastBits();
+			if ((spriteFetcherStatus == SpriteFetcherMode.Off) && (scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8 )) {
+				if (!PPU.ObjectEnable)
+				{
+					while ((scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8))
+					{
+						scanlineSprites.Dequeue();
+					}
+				}
+				else
+				{
+					//GB.Log("Sprite Hit Registered");
+					spriteFetcherStatus = SpriteFetcherMode.TileId;
 				}
 			}
-			if (timerToggle) {
-				switch (WindowState)
-				{
-					case WindowMode.Off:
-						switch (State)
+			if (spriteFetcherStatus == SpriteFetcherMode.Off)
+			{
+				//if (!PPU.WindowEnable) windowCheck = WindowCheckMode.Off;
+				if (BackgroundPixels > 8) ShiftOut();
+				if (windowCheck == WindowCheckMode.Active)
+				{    //This check and several other checks in this function have been added to allow the WX=00 glitch to happen.
+					if (WindowYCondition && PPU.WindowEnable && PPU.WX == xPixel + 15)   //ToDo: Fix window glitch: Window renders 8 pixels to the right of where it should be, and leaves a color 0 block. xPixel + 15 is a temporary fix. Should be xPixel + 7
+					{       //The WX=A6 glitch is currently not supported.
+						windowCheck = WindowCheckMode.Off;
+						WindowState = WindowMode.Rendering;
+						State = FifoState.DummyT;
+						timerToggle = true;
+						ClearLastBits();
+					}
+				}
+			}
+			if (timerToggle) {              //TODO: Implement the finite state machine for fetching sprite tiles
+				switch (spriteFetcherStatus) {
+					case SpriteFetcherMode.Off:
+						switch (WindowState)
 						{
-							case FifoState.DummyT:
-								FIFO_BackgroundLatch();
-								FIFO_B();
-								State = FifoState.Dummy0;
-								break;
-							case FifoState.Character:
-								FIFO_B();
-								IncrementFetcherAddress();
-								State = FifoState.Plane0;
-								if (windowCheck == WindowCheckMode.Preparing) windowCheck = WindowCheckMode.Active;
-								break;
+							case WindowMode.Off:
+								switch (State)
+								{
+									case FifoState.DummyT:
+										FIFO_BackgroundLatch();
+										FIFO_B();
+										State = FifoState.Dummy0;
+										break;
+									case FifoState.Character:
+										FIFO_B();
+										IncrementFetcherAddress();
+										State = FifoState.Plane0;
+										if (windowCheck == WindowCheckMode.Preparing) windowCheck = WindowCheckMode.Active;
+										break;
 
-							case FifoState.Dummy0:
-								FIFO_0();
-								State = FifoState.Dummy1;
-								break;
-							case FifoState.Plane0:
-								FIFO_0();
-								State = FifoState.Plane1;
-								if (windowCheck == WindowCheckMode.Off && WindowYCondition && PPU.WindowEnable && xPixel+15 >= PPU.WX) {	//ToDo: Fix Important window rendering bug: xPixel+15 is a temporary patch for the window rendering glitch. It should be xPixel+7. The bug is that the window is being rendered 8 pixels to the right of where it should be, and it leaves a big white stripe in between the actual and the correct spot. 
-									State = FifoState.DummyT;				//I don't know how the gameboy handles changes to LCDC bit 5 mid scanline
-									WindowState = WindowMode.Rendering;		//This check is here to force the emulator to draw the window anyway
+									case FifoState.Dummy0:
+										FIFO_0();
+										State = FifoState.Dummy1;
+										break;
+									case FifoState.Plane0:
+										FIFO_0();
+										State = FifoState.Plane1;
+										if (windowCheck == WindowCheckMode.Off && WindowYCondition && PPU.WindowEnable && xPixel + 15 >= PPU.WX)    //ToDo: Fix window glitch: Window renders 8 pixels to the right of where it should be, and leaves a color 0 block. xPixel + 15 i9s a temporary fix. Should be xPixel + 7
+										{
+											State = FifoState.DummyT;               //I don't know how the gameboy handles changes to LCDC bit 5 mid scanline
+											WindowState = WindowMode.Rendering;     //This check is here to force the emulator to draw the window anyway
+										}
+										break;
+
+									case FifoState.Dummy1:
+										FIFO_1();
+										ClearPixelQueue();
+										State = FifoState.Character;
+										windowCheck = WindowCheckMode.Preparing;
+										break;
+									case FifoState.Plane1:
+										FIFO_1();
+										State = FifoState.Sprite;
+										break;
+
+									case FifoState.Sprite:
+										FIFO_S();
+										State = FifoState.Character;
+										break;
+
+									case FifoState.Stopped:
+										break;
+									case FifoState.Wait:
+										State = FifoState.Stopped;
+										break;
 								}
 								break;
+							case WindowMode.Rendering:
+								switch (State)
+								{
+									case FifoState.DummyT:
+										FIFO_WindowLatch();
+										FIFO_W();
+										IncrementFetcherAddress();
+										State = FifoState.Dummy0;
+										break;
+									case FifoState.Character:
+										FIFO_W();                           //Add window handling code here.
+										IncrementFetcherAddress();
+										State = FifoState.Plane0;
+										break;
 
-							case FifoState.Dummy1:
-								FIFO_1();
-								ClearPixelQueue();
-								State = FifoState.Character;
-								windowCheck = WindowCheckMode.Preparing;
-								break;
-							case FifoState.Plane1:
-								FIFO_1();
-								State = FifoState.Sprite;
-								break;
+									case FifoState.Dummy0:
+										FIFO_0();
+										State = FifoState.Dummy1;
+										break;
+									case FifoState.Plane0:
+										FIFO_0();
+										State = FifoState.Plane1;
+										break;
 
-							case FifoState.Sprite:
-								FIFO_S();
-								State = FifoState.Character;
-								break;
+									case FifoState.Dummy1:
+										FIFO_1();
+										State = FifoState.Wait;
+										break;
+									case FifoState.Plane1:
+										FIFO_1();
+										State = FifoState.Sprite;
+										break;
 
-							case FifoState.Stopped:
+									case FifoState.Sprite:
+										FIFO_S();
+										State = FifoState.Character;
+										break;
+
+									case FifoState.Stopped:
+										break;
+									case FifoState.Wait:
+										State = FifoState.Character;
+										break;
+								}
 								break;
-							case FifoState.Wait:
-								State = FifoState.Stopped;
-								break;
+							case WindowMode.Glitch_A6:
+								throw new NotImplementedException();
+								//break;
 						}
 						break;
-					case WindowMode.Rendering:
-						switch (State)
-						{
-							case FifoState.DummyT:
-								FIFO_WindowLatch();
-								FIFO_W();
-								IncrementFetcherAddress();
-								State = FifoState.Dummy0;
-								break;
-							case FifoState.Character:
-								FIFO_W();                           //Add window handling code here.
-								IncrementFetcherAddress();
-								State = FifoState.Plane0;
-								break;
-
-							case FifoState.Dummy0:
-								FIFO_0();
-								State = FifoState.Dummy1;
-								break;
-							case FifoState.Plane0:
-								FIFO_0();
-								State = FifoState.Plane1;
-								break;
-
-							case FifoState.Dummy1:
-								FIFO_1();
-								State = FifoState.Wait;
-								break;
-							case FifoState.Plane1:
-								FIFO_1();
-								State = FifoState.Sprite;
-								break;
-
-							case FifoState.Sprite:
-								FIFO_S();
-								State = FifoState.Character;
-								break;
-
-							case FifoState.Stopped:
-								break;
-							case FifoState.Wait:
-								State = FifoState.Character;
-								break;
-						}
+					case SpriteFetcherMode.TileId:
+						FIFO_SprF();
+						spriteFetcherStatus = SpriteFetcherMode.Plane1;
 						break;
-					case WindowMode.Glitch_A6:
-						throw new NotImplementedException();
-						//break;
+					case SpriteFetcherMode.Plane1:
+						FIFO_S0();
+						spriteFetcherStatus = SpriteFetcherMode.Plane2;
+						break;
+					case SpriteFetcherMode.Plane2:
+						FIFO_S1();
+						spriteFetcherStatus = SpriteFetcherMode.Off;
+						break;
 				}
-				
+			}
+			if (performBackgroundPush && BackgroundPixels <= 8) {
+				EnqueuePixels(backgroundPushData.Item1,backgroundPushData.Item2);
+				performBackgroundPush = false;
 			}
 			timerToggle = !timerToggle;
 		}
@@ -195,9 +242,8 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void FIFO_W() {
 			byte ntbyte = PPU.Fetch(fetcher_address);
-			byte ysub = (byte)(LY-PPU.WY);// (LY+WY) causes graphical glitches when the window is moving? Changing this to (LY-WY) removes them, but it intruduces small black artifacts on the window? And the artifacts are evenly spaced??
-			//if (wd++==1) { GB.Log($"Drawing Tile {ntbyte:X}"); }
-			if (PPU.TileData)   //One of these tiling modes is bugged.
+			byte ysub = (byte)(LY-PPU.WY);
+			if (PPU.TileData)
 			{
 				character_address = (ushort)((ntbyte << 4) | ((ysub & 0x7) << 1));
 				character_address |= 0x8000;
@@ -234,6 +280,40 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 			}
 		}
 
+		public void FIFO_SprF()
+		{
+			byte ysub, ntbyte;
+			var spr = scanlineSprites.Peek(0);
+			ysub = (byte)(LY + 16 - spr.PosY);
+			if (PPU.ObjectSize)
+			{
+				if (spr.YFlip) ysub = (byte)(15 - ysub);
+
+				ntbyte = (byte)(spr.TileID & 0b11111110);
+				if (ysub > 7) ++ntbyte;
+				
+				ysub = (byte)(ysub % 8);
+			}
+			else
+			{
+				if (spr.YFlip) ysub = (byte)(7 - ysub);
+				ntbyte = spr.TileID;
+			}
+
+			sprite_character_address = (ushort)((ntbyte << 4) | ((ysub & 0x7) << 1));
+			sprite_character_address |= 0x8000;
+			
+		}
+		public void FIFO_S0()
+		{
+			spritePlane1 = PPU.Fetch(sprite_character_address);
+		}
+		public void FIFO_S1()
+		{
+			spritePlane2 = PPU.Fetch((ushort)(sprite_character_address + 1));
+			SpritePixelData.MixSprite(PPU,spritePlane1,spritePlane2,scanlineSprites.Dequeue());
+		}
+
 		public void FIFO_BackgroundLatch()
 		{
 			byte ybase = (byte)((PPU.SCY + LY) & 0xFF);   // calculates the effective vis. scanline
@@ -242,7 +322,6 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void FIFO_WindowLatch() {
 
-			//byte basew = (byte)((LY - PPU.WY) & 0xFF);   // calculates the effective window scanline
 			byte basew = (byte)((WindowLYCounter++) & 0xFF);
 
 			fetcher_address = (ushort)(0x9800 | ((PPU.WindowTileMap ? 1 : 0) << 10) | ((basew & 0xf8) << 2));
@@ -297,13 +376,22 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		{
 			backgroundQueue = (backgroundQueue.Item1 & 0xFF00, backgroundQueue.Item2 & 0xFF00);
 			BackgroundPixels = BackgroundPixels > 8 ? 8 : BackgroundPixels;
+			performBackgroundPush = false;
 		}
 		public void ShiftOut()
 		{
 			byte color = DequeuePixel();
 			if (!PPU.BGWindowPriority) color = 0;
-			//System.Diagnostics.Debug.WriteLine($"queue: {Convert.ToString(backgroundQueue,2)}, pxl: {Convert.ToString(color,2)} ({color}) ");
 			var palette = PaletteType.Background;
+
+			if (!spritePixelQueue.TryDequeue(out var spritePixel)) spritePixel = new SpritePixelData() { BGPriority = false, Color = 0, Palette = PaletteType.Sprite1, GB = GB };
+
+			if (spritePixel.Color != 0 && ((!spritePixel.BGPriority) || (spritePixel.BGPriority && (color == 0))))
+			{
+				color = spritePixel.Color;
+				palette = spritePixel.Palette;
+			}
+			
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 		}
 		public void SetPixel(ColorContainer pixel) {
@@ -324,6 +412,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		public void ClearPixelQueue() {
 			backgroundQueue = (0,0);
 			BackgroundPixels = 0;
+			performBackgroundPush = false; 
 		}
 		public void FullReset()
 		{
@@ -336,21 +425,45 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		{
 			timerToggle = true;
 			performBackgroundPush = false;
-			windowCheck = WindowCheckMode.Off;
 			xPixel = 0;
 			spritePhaseDelay = 0;
-			ClearPixelQueue();
-			spritePixelQueue.Clear();
+
 			State = FifoState.Stopped; 
 			WindowState = WindowMode.Off;
+			spriteFetcherStatus = SpriteFetcherMode.Off;
+			windowCheck = WindowCheckMode.Off;
 
+			ClearPixelQueue();
 			spritePixelQueue.Clear();
+			scanlineSprites.Clear();
 		}
 		public void Start()
 		{
 			State = FifoState.DummyT;
 			if (LY == PPU.WY && PPU.WindowEnable) WindowYCondition = true;
-			//Scan OAM Here
+		}
+		public void SearchOAM() {
+
+			if (scanlineSprites.Count != 0) scanlineSprites.Clear();
+			int miny,maxy;
+
+			if (PPU.ObjectSize)
+			{
+				miny = LY - 15;
+				maxy = LY;
+			}
+			else {
+				miny = LY - 7;
+				maxy = LY;
+			}
+
+			var oamQuerry = from spr in OAM where (spr.PosY >= miny) && (spr.PosY <= maxy) orderby spr.PosX select spr;
+			foreach(var spr in oamQuerry) {
+				if (LY >= miny && LY <= maxy) {
+					scanlineSprites.Enqueue(spr);
+					if (scanlineSprites.Count == 10) break;
+				}
+			}
 		}
 	}
 }

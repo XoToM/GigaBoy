@@ -12,7 +12,7 @@ namespace GigaBoy.Components
         public int Capacity { get; init; }
         public int Count { get; protected set; }
 
-        readonly T?[] buffer;
+        public readonly T?[] Buffer;
         int queueBaseIndex = 0;
         int queueEndIndex = 0;
 
@@ -39,9 +39,15 @@ namespace GigaBoy.Components
         }
 
 
-        public FixedSizeQueue(int size) {
+        public FixedSizeQueue(int size)
+        {
             Capacity = size;
-            buffer = new T?[size];
+            Buffer = new T?[size];
+        }
+        public FixedSizeQueue(T?[] buffer)
+        {
+            Capacity = buffer.Length;
+            this.Buffer = buffer;
         }
 
         public void Enqueue(T element) {
@@ -55,7 +61,7 @@ namespace GigaBoy.Components
             {
                 return false;
             }
-            buffer[queueEndIndex] = element;
+            Buffer[queueEndIndex] = element;
             queueEndIndex = (queueEndIndex + 1) % Capacity;
             ++Count;
             return true;
@@ -76,8 +82,8 @@ namespace GigaBoy.Components
                 element = default;
                 return false;
             }
-            element = buffer[queueBaseIndex];
-            buffer[queueBaseIndex] = default;
+            element = Buffer[queueBaseIndex];
+            Buffer[queueBaseIndex] = default;
             queueBaseIndex = (queueBaseIndex + 1) % Capacity;
             --Count;
             return true;
@@ -102,7 +108,7 @@ namespace GigaBoy.Components
                 value = default;
                 return false;
             }
-            value = buffer[(queueBaseIndex + index) % Capacity];
+            value = Buffer[(queueBaseIndex + index) % Capacity];
             return true;
         }
 
@@ -127,7 +133,7 @@ namespace GigaBoy.Components
             {
                 return false;
             }
-            buffer[(queueBaseIndex + index) % Capacity] = value;
+            Buffer[(queueBaseIndex + index) % Capacity] = value;
             return true;
         }
         
@@ -139,7 +145,7 @@ namespace GigaBoy.Components
             }
         }
         public void Clear() {
-            Array.Clear(buffer, 0, Capacity);
+            Array.Clear(Buffer, 0, Capacity);
             queueBaseIndex = 0;
             queueEndIndex = 0;
             Count = 0;
@@ -151,7 +157,7 @@ namespace GigaBoy.Components
             int baseIndex = queueBaseIndex;
             while (baseIndex != queueEndIndex) {
 #pragma warning disable CS8603 // Możliwe zwrócenie odwołania o wartości null.
-                yield return buffer[baseIndex++ % Capacity];
+                yield return Buffer[baseIndex++ % Capacity];
 #pragma warning restore CS8603 // Możliwe zwrócenie odwołania o wartości null.
             }
         }

@@ -304,6 +304,7 @@ namespace GigaBoy.Components.Graphics
                         for (int i = 0; i < 80; i++) {
                             yield return PPUStatus.OAMSearch;
                         }
+                        PictureProcessor.SearchOAM();
                         State = PPUStatus.GenerateFrame;
                         for (int i = 0; i < 376; i++) {
                             PictureProcessor.Tick();

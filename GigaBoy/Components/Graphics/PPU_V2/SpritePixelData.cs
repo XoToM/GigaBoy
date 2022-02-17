@@ -8,12 +8,32 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 {
     public struct SpritePixelData
     {
+        public GBInstance GB { get; init; }
+        public PPU PPU { get => GB.PPU; }
         public byte Color { get; init; }
         public PaletteType Palette { get; init; }
-        public bool Priority { get; init; }
+        public bool BGPriority { get; init; }
+        public static void MixSprite(PPU ppu, byte plane1, byte plane2, OamSprite sprite) {
+            if (!ppu.ObjectEnable) return;
+            var pixelQueue = ppu.PictureProcessor.spritePixelQueue;
+            for (int i = 0; i < 8; i++) {
+                var j = sprite.XFlip ? (7 - i) : i;
 
-        public ColorContainer GetColor(PPU ppu) {
-            return ppu.Palette.GetTrueColor(Color,Palette);
+                byte color = (byte)(((plane1 >> j) & 1) | ((plane2 >> (j - 1)) & 2));
+                var palette = sprite.Palette;
+                var priority = sprite.BGPriority;
+                
+                var pixelData = new SpritePixelData() { Color = color, GB = ppu.GB, Palette = palette, BGPriority = priority };
+
+                if (pixelQueue.Count <= i)
+                {
+                    pixelQueue.Enqueue(pixelData);
+                }
+                else 
+                {
+                    if (color != 0 && pixelQueue[i].Color == 0) pixelQueue[i] = pixelData;
+                }
+            }
         }
     }
 }
