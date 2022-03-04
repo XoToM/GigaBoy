@@ -4,6 +4,7 @@ using GigaBoy.Components.Graphics;
 using GigaBoy.Components;
 using GigaBoy.Components.Mappers;
 using System.Collections.Generic;
+using System.Text;
 
 namespace GigaBoy
 {
@@ -20,17 +21,20 @@ namespace GigaBoy
         public byte[] Rom { get { return MemoryMapper.RomImage; } set { MemoryMapper.RomImage = value; } }
         public SharpSM83 CPU { get; init; }
         public CPUClock Clock { get; init; }
+        public Joypad Joypad { get; init; }
         public MemoryMapper MemoryMapper { get; init; }
         public bool Running { get => Clock.Running; }
         public double SpeedMultiplier { get => Clock.SpeedMultiplier; set => Clock.SpeedMultiplier = value; }
         public double FrameAutoRefreshTreshold { get; set; } = 0;
         public bool DebugLogging { get; set; } = false;
+        public bool LoggingBuffer { get; set; } = false;
         public bool CurrentlyStepping { get; protected set; } = false;
         public bool BreakpointsEnable = true;
         public Dictionary<ushort,LinkedList<BreakpointInfo>> Breakpoints { get; protected set; } = new();
         public GBInstance(string filename)
         {
             LastInstance = this;
+            LogBacklog = new(BacklogMaxSize);
             CRAMBanks = new CRAM[] { new(this), new(this), new(this) };
             TMRAMBanks = new TMRAM[] { new(this), new(this)};
             WRam = new(this, 0x2000) { Type = RAMType.RAM };
@@ -38,11 +42,13 @@ namespace GigaBoy
             PPU = new(this);
             CPU = new(this);
             Clock = new(this);
+            Joypad = new(this);
             MemoryMapper = MemoryMapper.GetMemoryMapper(this, filename);
         }
         public GBInstance()
         {
             LastInstance = this;
+            LogBacklog = new(BacklogMaxSize);
             CRAMBanks = new CRAM[] { new(this), new(this), new(this) };
             TMRAMBanks = new TMRAM[] { new(this), new(this) };
             WRam = new(this, 0x2000) { Type = RAMType.RAM };
@@ -50,6 +56,7 @@ namespace GigaBoy
             PPU = new(this);
             CPU = new(this);
             Clock = new(this);
+            Joypad = new(this);
             MemoryMapper = MemoryMapper.GetMapperObject(this, 0, new byte[0x8000]);
 
             PPU.Enabled = true;
@@ -58,17 +65,28 @@ namespace GigaBoy
             Log("DMG instance initialised");
         }
         public bool BacklogOnlyLogging { get; set; } = true;
-        private const int BACKLOG_MAX_SIZE = 500;
-        private static Queue<string> LogBacklog = new(BACKLOG_MAX_SIZE);
+        public int BacklogMaxSize = 500;
+        private static Queue<string> LogBacklog;
+        private StringBuilder logBuilder = new();
         public void Log(string data)
         {
             if (DebugLogging) {
                 if (!BacklogOnlyLogging)
                 {
+                    if (LoggingBuffer) {
+                        LogBacklog.Enqueue(data);
+                        if (LogBacklog.Count >= BacklogMaxSize) {
+                            logBuilder.AppendJoin("\n",LogBacklog);
+                            Debug.WriteLine(logBuilder);
+                            logBuilder.Clear();
+                            LogBacklog.Clear();
+                        }
+                        return;
+                    }
                     Debug.WriteLine(data);
                     return;
                 }
-                if (LogBacklog.Count == BACKLOG_MAX_SIZE) LogBacklog.Dequeue();
+                if (LogBacklog.Count == BacklogMaxSize) LogBacklog.Dequeue();
                 LogBacklog.Enqueue(data);
             }
         }
@@ -84,6 +102,8 @@ namespace GigaBoy
             Debug.WriteLine("  ---  Emulation Exception  ---  ");
 
             PrintBackLog();
+
+            Debug.WriteLine("  ---  Emulation Exception  ---  ");
             Debug.WriteLine("   --  " + e.GetType().Name+"  --");
             Debug.WriteLine(e.Message);
             throw e;
@@ -117,11 +137,11 @@ namespace GigaBoy
             Debug.WriteLine($"AF={CPU.AF:X}  BC={CPU.BC:X}  DE={CPU.DE:X}  HL={CPU.HL:X}  SP={CPU.SP:X}  PC={CPU.PC:X}  LastPC={CPU.LastPC:X}\n\n");
         }
         protected internal void BreakpointHit() {
-            Debug.WriteLine("Breakpoint Hit!");
 
             if (!BreakpointsEnable) return;
 
             PrintBackLog();
+            Debug.WriteLine("Breakpoint Hit!");
 
             EventHandler? temp = Breakpoint;
             if (temp != null)

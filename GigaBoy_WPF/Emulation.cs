@@ -102,10 +102,11 @@ namespace GigaBoy_WPF
             GB.Breakpoint += GB_Breakpoint;
             GB.CPU.Debug = true;
             //GB.PPU.Debug = true;
-            GB.CPU.PrintOperation = true;   //Warning: Setting this to true while BacklogOnlyLogging is set to false will defenestrate performance. Enable at your own risk!
+            //GB.CPU.PrintOperation = true;   //Warning: Setting this to true while BacklogOnlyLogging is set to false will defenestrate performance. Enable at your own risk!
             GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
-            //GB.BacklogOnlyLogging = false;
+            GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
+            GB.BreakpointsEnable = true;
             //GB.SpeedMultiplier = 5000;
             //GB.FrameAutoRefreshTreshold = double.MaxValue;
             Render(true);
@@ -113,9 +114,9 @@ namespace GigaBoy_WPF
 
         private static void GB_Breakpoint(object? sender, EventArgs e)
         {
-            //GB?.Stop();
-            //MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
-            //Debug.WriteLine($"Breakpoint Hit {(_gbRunner is not null)}");
+            GB?.Stop();
+            MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
+            Debug.WriteLine($"Breakpoint Hit {(_gbRunner is not null)}");
         }
 
         public static void Start() {

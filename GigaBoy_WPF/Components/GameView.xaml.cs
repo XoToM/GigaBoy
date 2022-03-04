@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using GigaBoy.Components;
 
 namespace GigaBoy_WPF.Components
 {
@@ -20,6 +21,7 @@ namespace GigaBoy_WPF.Components
 	/// </summary>
 	public partial class GameView : UserControl
 	{
+		public Dictionary<Key, GameboyInput> ButtonMap = new();
 		public GameView()
 		{
 			InitializeComponent();
@@ -32,24 +34,34 @@ namespace GigaBoy_WPF.Components
 
 		private void UserControl_Loaded(object sender, RoutedEventArgs e)
 		{
-			//Environment.CurrentDirectory should point to this Repo's Main Folder. 
-
 			Emulation.GBFrameReady += Emulation_GBFrameReady;
+
+			ButtonMap[Key.Up] = GameboyInput.Up;
+			ButtonMap[Key.Down] = GameboyInput.Down;
+			ButtonMap[Key.Left] = GameboyInput.Left;
+			ButtonMap[Key.Right] = GameboyInput.Right;
+			ButtonMap[Key.Z] = GameboyInput.A;
+			ButtonMap[Key.X] = GameboyInput.B;
+			ButtonMap[Key.LeftShift] = GameboyInput.Select;
+			ButtonMap[Key.Space] = GameboyInput.Start;
+
+			//For debug roms Environment.CurrentDirectory should point to this Repo's Main Folder. 
+
 			RenderOptions.SetBitmapScalingMode(ImageBox, BitmapScalingMode.NearestNeighbor);
 			RenderOptions.SetEdgeMode(ImageBox, EdgeMode.Aliased);
 
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\testRom.gb");
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\target_roms\pocket.gb");
 
-			Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
+			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\blargg_test_roms\dmg_cpu_instrs.gb");	//ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 			
-			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\dmg_acid2\dmg-acid2.gb"); //ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
+			Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\dmg_acid2\dmg-acid2.gb"); //ROM never halts, and since the PPU is currently broken its impossible to tell whetever the emulator passes the tests or not.
 			
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\my_test_roms\cpu_test.gb");
 
 			//Emulation.Init(Environment.CurrentDirectory + @"\GigaBoyTests\mooneye_test_roms\boot_div-dmg0.gb");//Currently broken, as it executes a broken jump instruction. Usually this would result in an error, but in this case the jump instruction creates an infinite loop.
 			
-			//Emulation.GB?.AddBreakpoint(0x02B7,new GigaBoy.BreakpointInfo() { BreakOnExecute=true,BreakOnJump=true,BreakOnRead=true });
+			Emulation.GB?.AddBreakpoint(0x0040,new GigaBoy.BreakpointInfo() { BreakOnExecute = true, BreakOnJump = true, BreakOnRead = true });
 			Emulation.Start();
 
 		}
@@ -68,5 +80,27 @@ namespace GigaBoy_WPF.Components
 			Emulation.Init(file[0]);
 			Emulation.Start();
 		}
+
+        private void UserControl_KeyDown(object sender, KeyEventArgs e)
+		{
+			if(ButtonMap.ContainsKey(e.Key)) Emulation.GB?.Joypad.SetButton(ButtonMap.GetValueOrDefault(e.Key), true);
+		}
+
+        private void UserControl_KeyUp(object sender, KeyEventArgs e)
+		{
+			if (ButtonMap.ContainsKey(e.Key)) Emulation.GB?.Joypad.SetButton(ButtonMap.GetValueOrDefault(e.Key), false);
+		}
+
+        private void UserControl_LostFocus(object sender, RoutedEventArgs e)
+        {
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Up, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Down, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Left, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Right, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Select, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.Start, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.B, false);
+			Emulation.GB?.Joypad.SetButton(GameboyInput.A, false);
+        }
     }
 }

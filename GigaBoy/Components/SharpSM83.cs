@@ -18,6 +18,7 @@ namespace GigaBoy.Components
         public CPUMode CPUMode { get; protected set; } = CPUMode.Stopped;
         public bool Debug { get; set; } = true;
         public bool PrintOperation { get; set; } = false;
+        public bool InstructionBreakpoints { get; set; } = true;
         public byte LastOpcode { get; protected set; } = 0;
         public ushort LastPC { get; protected set; } = 0;
         protected IEnumerator<bool> InstructionProcessor;
@@ -615,10 +616,10 @@ namespace GigaBoy.Components
                             default:
                                 throw new NotImplementedException();
                         }
-                        if (source == dest && Debug)
+                        if (source == dest && Debug && InstructionBreakpoints)
                         {
-                            System.Diagnostics.Debug.WriteLine("Instruction Breakpoint");
                             GB.BreakpointHit();
+                            System.Diagnostics.Debug.WriteLine("Instruction Breakpoint");
                         }
                         break;
                     case 128:
@@ -1372,26 +1373,31 @@ namespace GigaBoy.Components
                     {
                         InterruptFlags = interrupts & ~InterruptType.VBlank;
                         address = 0x0040;
+                        GB.Log("Servicing the VBlank Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Stat))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Stat;
                         address = 0x0048;
+                        GB.Log("Servicing the Stat Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Timer))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Timer;
                         address = 0x0050;
+                        GB.Log("Servicing the Timer Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Serial))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Serial;
                         address = 0x0058;
+                        GB.Log("Servicing the Serial Interrupt");
                     }
                     else
                     {
                         InterruptFlags = interrupts & ~InterruptType.Joypad;
                         address = 0x0060;
+                        GB.Log("Servicing the Joypad Interrupt");
                     }
 
                     yield return false;
@@ -1468,6 +1474,10 @@ namespace GigaBoy.Components
             PC = address;
         }
         protected byte Fetch() {
+            if (PC == 0x0040) {
+                System.Diagnostics.Debug.WriteLine("BREAK");
+            }
+            
             if (GB.Breakpoints.TryGetValue(PC, out LinkedList<BreakpointInfo>? breakpoints))
             {
                 if (breakpoints == null || breakpoints.Count == 0)

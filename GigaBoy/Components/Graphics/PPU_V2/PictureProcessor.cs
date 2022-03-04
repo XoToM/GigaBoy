@@ -444,6 +444,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void SearchOAM() {
 
+			//GB.Log("OAM Scan Start");
 			if (scanlineSprites.Count != 0) scanlineSprites.Clear();
 			int miny,maxy;
 
@@ -459,11 +460,11 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 
 			var oamQuerry = from spr in OAM where (spr.PosY >= miny) && (spr.PosY <= maxy) orderby spr.PosX select spr;
 			foreach(var spr in oamQuerry) {
-				if (LY >= miny && LY <= maxy) {
-					scanlineSprites.Enqueue(spr);
-					if (scanlineSprites.Count == 10) break;
-				}
+				scanlineSprites.Enqueue(spr);
+				//GB.Log($"Sprite X:{spr.PosX:X} Y:{spr.PosY:X} Tile:{spr.TileID:X} Attrib:{spr.Attributes:X}");
+				if (scanlineSprites.Count == 10) break;
 			}
+			//GB.Log("OAM Scan End");
 		}
 	}
 }

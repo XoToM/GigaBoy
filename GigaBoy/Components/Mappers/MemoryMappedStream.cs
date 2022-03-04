@@ -16,7 +16,7 @@ namespace GigaBoy.Components.Mappers
 
         public override bool CanSeek => true;
 
-        public override bool CanWrite => false;//Currently Writing hasn't been implemented.
+        public override bool CanWrite => true;//Currently Writing hasn't been implemented.
 
         public override long Length => ushort.MaxValue+1;
 
@@ -64,7 +64,10 @@ namespace GigaBoy.Components.Mappers
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new System.NotImplementedException();
+            for (int i = 0; i < count; i++) {
+                if (Position + i > ushort.MaxValue) return;
+                mapper.Write((ushort)(Position + i),buffer[i + offset]);
+            }
         }
     }
 }

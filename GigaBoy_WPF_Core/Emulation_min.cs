@@ -38,10 +38,14 @@ namespace GigaBoy_WPF_Core
 			GB = new (rom);
 
 			//GB.CPU.Debug = true;
+			//GB.CPU.PrintOperation = true;
+			//GB.LoggingBuffer = true;
+			//GB.BacklogMaxSize = 50;
+			//GB.Clock.SpeedMultiplier = 1;
 			//GB.PPU.Debug = true;
 
 			GB.DebugLogging = true;
-			GB.BacklogOnlyLogging = false;
+			//GB.BacklogOnlyLogging = false;
 			GB.PPU.ClearColor = new(255,0,0);
             GB.PPU.FrameRendered += PPU_FrameRendered;
 		}

@@ -88,6 +88,8 @@ namespace GigaBoy.Components.Mappers
                         return (byte)GB.CPU.InterruptEnable;
                     case 0xFF0F:
                         return (byte)GB.CPU.InterruptFlags;
+                    case 0xFF00:
+                       return GB.Joypad.Read((ushort)(address - 0xFF00));
                     case 0xFF40:
                         return GB.PPU.LCDC;
                     case 0xFF41:
@@ -143,6 +145,8 @@ namespace GigaBoy.Components.Mappers
                         GB.CPU.InterruptEnable = (InterruptType)(value & 31); return;
                     case 0xFF0F:
                         GB.CPU.InterruptFlags = (InterruptType)(value & 31); return;
+                    case 0xFF00:
+                        GB.Joypad.Write((ushort)(address - 0xFF00), value); return;
                     case 0xFF40:
                         GB.PPU.LCDC = value; return;
                     case 0xFF41:
@@ -191,7 +195,7 @@ namespace GigaBoy.Components.Mappers
         }
         public virtual void DirectWrite(int address, byte value)
         {
-            return;
+            StandartSetByte((ushort)address,value);
         }
 
         public static MemoryMapper GetMapperObject(GBInstance gb,byte mapperId,byte[] rom) {

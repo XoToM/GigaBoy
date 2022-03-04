@@ -46,7 +46,7 @@
             <components:HexRegisterView Grid.Column="1" Grid.Row="4" GBRegisterName="PC" GBRegisterType="PC" />
             <components:HexRegisterView Grid.Column="1" Grid.Row="5" GBRegisterName="SP" GBRegisterType="SP" />
         </Grid>
-        <hexControl:HexEditor x:Name="HexViewerMain" Width="auto" Height="auto" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" AllowCustomBackgroundBlock="True" AllowAutoHighLightSelectionByte="False" ApplicationName="GigaBoy Memory Viewer" ReadOnlyMode="True" VisualCaretMode="Overwrite" VisualByteAdressLength="2" ShowByteToolTip="True" HorizontalContentAlignment="Left" VerticalContentAlignment="Top">
+        <hexControl:HexEditor x:Name="HexViewerMain" Width="auto" Height="auto" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" AllowCustomBackgroundBlock="True" AllowAutoHighLightSelectionByte="False" ApplicationName="GigaBoy Memory Viewer" VisualCaretMode="Overwrite" VisualByteAdressLength="2" ShowByteToolTip="True" HorizontalContentAlignment="Left" VerticalContentAlignment="Top" AllowDeleteByte="False" AllowBuildinCtrlv="False" AppendNeedConfirmation="False" AllowTextDrop="False" AllowFileDrop="False">
             <!--<hexControl:HexEditor.CustomBackgroundBlockItems>
                 <Core:CustomBackgroundBlock Color="#FFFFCACA" Description="ROM0" Length="16384"/>
                 <Core:CustomBackgroundBlock Color="#FFFFAEAE" Description="ROMX" Length="16384" StartOffset="16384"/>
