@@ -287,10 +287,9 @@ namespace GigaBoy.Components.Graphics
 			ysub = (byte)(LY - spr.PosY);
 			if (PPU.ObjectSize)
 			{
-				if (spr.YFlip) ysub = (byte)(16 - ysub);
+				if (spr.YFlip) ysub = (byte)(15 - ysub);
 
-				ntbyte = (byte)(spr.TileID & 0b11111110);
-				//if (ysub > 7) ++ntbyte;
+				ntbyte = (byte)((spr.TileID & 0b11111110) | ((ysub / 8) & 1));
 				
 				ysub = (byte)(ysub % 8);
 			}
@@ -393,7 +392,6 @@ namespace GigaBoy.Components.Graphics
 				color = spritePixel.Color;
 				palette = spritePixel.Palette;
 			}
-			if (spritePixel.Palette != PaletteType.Sprite1 && color != 0 && (PPU.Palette.GetTrueColor(color, PaletteType.Sprite1) == PPU.Palette.GetTrueColor(color, PaletteType.Sprite2))) System.Diagnostics.Debug.WriteLine("Incorrect Sprite Color");
 
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 		}
@@ -403,7 +401,6 @@ namespace GigaBoy.Components.Graphics
 				return;
 			}
 			PPU.SetPixel(xPixel++,LY,pixel);
-			//PPU.SetPixel(0,0,new ColorContainer(255,0,0));
 			if (xPixel == 160)
 			{
 				Reset();
@@ -449,21 +446,20 @@ namespace GigaBoy.Components.Graphics
 			//GB.Log("OAM Scan Start");
 			if (scanlineSprites.Count != 0) scanlineSprites.Clear();
 			int miny,maxy;
-			miny = LY + 9;
+			miny = LY+9;
 
 
 			if (PPU.ObjectSize)
 			{
-				maxy = miny + 16;
+				maxy = miny + 15;
 			}
 			else {
-				maxy = miny + 8;
+				maxy = miny + 7;
 			}
 
 			var oamQuerry = from spr in OAM where (spr.PosY >= miny) && (spr.PosY <= maxy) orderby spr.PosX select spr;
 			foreach(var spr in oamQuerry) {
 				scanlineSprites.Enqueue(spr);
-				//GB.Log($"Sprite X:{spr.PosX:X} Y:{spr.PosY:X} Tile:{spr.TileID:X} Attrib:{spr.Attributes:X}");
 				if (scanlineSprites.Count == 10) break;
 			}
 			//GB.Log("OAM Scan End");
