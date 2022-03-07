@@ -66,6 +66,11 @@ namespace GigaBoy.Components.Mappers
             return StandardGetByte(address,direct);
         }
         public byte StandardGetByte(ushort address, bool direct) {
+            if (address < 0x8000)
+            {
+                GB.Error("Invalid Read");
+                return 0;
+            }
             if (address < 0x9800)
             {
                 var cram = GB.CRAMBanks[(address - 0x8000) / 0x800];
@@ -127,6 +132,10 @@ namespace GigaBoy.Components.Mappers
             return;
         }
         public void StandartSetByte(ushort address,byte value) {
+            if (address < 0x8000) {
+                GB.Error("Invalid Write");
+                return;
+            }
             if (address < 0x9800)
             {
                 var cram = GB.CRAMBanks[(address - 0x8000) / 0x800];
@@ -207,7 +216,9 @@ namespace GigaBoy.Components.Mappers
         }
         public virtual void DirectWrite(int address, byte value)
         {
-            StandartSetByte((ushort)address,value);
+            GB.Log($"Write to ROM [{address}] = {value}");
+            return;
+            //StandartSetByte((ushort)address,value);
         }
 
         public static MemoryMapper GetMapperObject(GBInstance gb,byte mapperId,byte[] rom) {

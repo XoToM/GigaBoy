@@ -37,7 +37,7 @@ namespace GigaBoy.Components
             {
                 var sw = Stopwatch.StartNew();
                 bool lastResult = false;
-                while (!(step&lastResult))
+                while (!(step & lastResult))
                 {
                     bool breakpoint = false;
                     sw.Restart();
@@ -67,8 +67,11 @@ namespace GigaBoy.Components
                     }
                 }
             }
+            catch (Exception e) {
+                GB.Error(e);
+            }
             finally {
-                lock (GB) { 
+                lock (GB) {
                     Running = false;
                     StopRequested = false;
                 }
