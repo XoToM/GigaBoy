@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GigaBoy.Components.Graphics.PPU_V2
+namespace GigaBoy.Components.Graphics
 {
     public struct SpritePixelData
     {
@@ -17,9 +17,9 @@ namespace GigaBoy.Components.Graphics.PPU_V2
             if (!ppu.ObjectEnable) return;
             var pixelQueue = ppu.PictureProcessor.spritePixelQueue;
             for (int i = 0; i < 8; i++) {
-                var j = sprite.XFlip ? (7 - i) : i;
+                var j = sprite.XFlip ? i : (7 - i);
 
-                byte color = (byte)(((plane1 >> j) & 1) | ((plane2 >> (j - 1)) & 2));
+                byte color = (byte)(((plane1 >> j) & 1) | (((plane2 >> (j)) << 1) & 2));
                 var palette = sprite.Palette;
                 var priority = sprite.BGPriority;
                 

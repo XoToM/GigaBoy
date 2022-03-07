@@ -18,7 +18,7 @@ namespace GigaBoy.Components
         public CPUMode CPUMode { get; protected set; } = CPUMode.Stopped;
         public bool Debug { get; set; } = true;
         public bool PrintOperation { get; set; } = false;
-        public bool InstructionBreakpoints { get; set; } = true;
+        public bool InstructionBreakpoints { get; set; } = false;
         public byte LastOpcode { get; protected set; } = 0;
         public ushort LastPC { get; protected set; } = 0;
         protected IEnumerator<bool> InstructionProcessor;

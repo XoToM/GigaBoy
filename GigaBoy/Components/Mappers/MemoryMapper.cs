@@ -102,6 +102,12 @@ namespace GigaBoy.Components.Mappers
                         return GB.PPU.LY;
                     case 0xFF45:
                         return GB.PPU.LYC;
+                    case 0xFF47:
+                        return GB.PPU.Palette.GetPaletteByte(PaletteType.Background);
+                    case 0xFF48:
+                        return GB.PPU.Palette.GetPaletteByte(PaletteType.Sprite1);
+                    case 0xFF49:
+                        return GB.PPU.Palette.GetPaletteByte(PaletteType.Sprite2);
                     case 0xFF4A:
                         return GB.PPU.WY;
                     case 0xFF4B:
@@ -159,6 +165,12 @@ namespace GigaBoy.Components.Mappers
                         return;//LY is readonly
                     case 0xFF45:
                         GB.PPU.LYC = value; return;
+                    case 0xFF47:
+                        GB.PPU.Palette.SetPaletteByte(PaletteType.Background,value);return;
+                    case 0xFF48:
+                        GB.PPU.Palette.SetPaletteByte(PaletteType.Sprite1,value);return;
+                    case 0xFF49:
+                        GB.PPU.Palette.SetPaletteByte(PaletteType.Sprite2,value);return;
                     case 0xFF4A:
                         GB.PPU.WY = value; return;
                     case 0xFF4B:

@@ -69,5 +69,24 @@ namespace GigaBoy.Components.Graphics
                 dest[i] = color;
             }
         }
+
+        internal void SetPaletteByte(PaletteType paletteType, byte value)
+        {
+            var palette = (sbyte)paletteType;
+            Palettes[palette, 3] = (byte)((value & 0b11000000) >> 6);
+            Palettes[palette, 2] = (byte)((value & 0b00110000) >> 4);
+            Palettes[palette, 1] = (byte)((value & 0b00001100) >> 2);
+            Palettes[palette, 0] = (byte)((value & 0b00000011));
+        }
+
+        internal byte GetPaletteByte(PaletteType paletteType)
+        {
+            var palette = (sbyte)paletteType;
+            var result = Palettes[palette, 3]<<6;
+            result |= Palettes[palette, 2]<<4;
+            result |= Palettes[palette, 1]<<2;
+            result |= Palettes[palette, 0];
+            return (byte)result;
+        }
     }
 }

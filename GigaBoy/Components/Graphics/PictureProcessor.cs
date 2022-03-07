@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GigaBoy.Components.Graphics.PPU_V2
+namespace GigaBoy.Components.Graphics
 {
 	public class PictureProcessor
 	{
@@ -68,7 +68,7 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 				else
 				{
 					//GB.Log("Sprite Hit Registered");
-					spriteFetcherStatus = SpriteFetcherMode.TileId;
+					if(PPU.ObjectEnable)spriteFetcherStatus = SpriteFetcherMode.TileId;
 				}
 			}
 			if (spriteFetcherStatus == SpriteFetcherMode.Off)
@@ -284,13 +284,13 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		{
 			byte ysub, ntbyte;
 			var spr = scanlineSprites.Peek(0);
-			ysub = (byte)(LY + 16 - spr.PosY);
+			ysub = (byte)(LY - spr.PosY);
 			if (PPU.ObjectSize)
 			{
-				if (spr.YFlip) ysub = (byte)(15 - ysub);
+				if (spr.YFlip) ysub = (byte)(16 - ysub);
 
 				ntbyte = (byte)(spr.TileID & 0b11111110);
-				if (ysub > 7) ++ntbyte;
+				//if (ysub > 7) ++ntbyte;
 				
 				ysub = (byte)(ysub % 8);
 			}
@@ -306,6 +306,8 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 		}
 		public void FIFO_S0()
 		{
+			var spr = scanlineSprites.Peek(0);
+			if (PPU.ObjectSize) GB.Log($"Sprite {spr.PosX:X}, Address = {sprite_character_address:X}");
 			spritePlane1 = PPU.Fetch(sprite_character_address);
 		}
 		public void FIFO_S1()
@@ -391,7 +393,8 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 				color = spritePixel.Color;
 				palette = spritePixel.Palette;
 			}
-			
+			if (spritePixel.Palette != PaletteType.Sprite1 && color != 0 && (PPU.Palette.GetTrueColor(color, PaletteType.Sprite1) == PPU.Palette.GetTrueColor(color, PaletteType.Sprite2))) System.Diagnostics.Debug.WriteLine("Incorrect Sprite Color");
+
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 		}
 		public void SetPixel(ColorContainer pixel) {
@@ -443,19 +446,18 @@ namespace GigaBoy.Components.Graphics.PPU_V2
 			if (LY == PPU.WY && PPU.WindowEnable) WindowYCondition = true;
 		}
 		public void SearchOAM() {
-
 			//GB.Log("OAM Scan Start");
 			if (scanlineSprites.Count != 0) scanlineSprites.Clear();
 			int miny,maxy;
+			miny = LY + 9;
+
 
 			if (PPU.ObjectSize)
 			{
-				miny = LY - 15;
-				maxy = LY;
+				maxy = miny + 16;
 			}
 			else {
-				miny = LY - 7;
-				maxy = LY;
+				maxy = miny + 8;
 			}
 
 			var oamQuerry = from spr in OAM where (spr.PosY >= miny) && (spr.PosY <= maxy) orderby spr.PosX select spr;
