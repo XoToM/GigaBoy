@@ -26,6 +26,7 @@ namespace GigaBoy.Components.Graphics
         protected ColorContainer[] displayBuffer = new ColorContainer[160 * 144];
         public ColorContainer ClearColor { get; set; }
         public bool Debug { get; set; } = false;
+        public bool SpriteDebugLines { get; set; } = false;
         /// <summary>
         /// Invoked when the PPU is finished with rendering a frame. This event is invoked by the emulation thread while GB object is locked, so all children objects of the GBInstance object can be accessed in a thread-safe way without locking.
         /// This also means that if the event handlers bound to this event take too long the emulator will have to wait for them to finish, which can cause lag.

@@ -24,6 +24,10 @@ namespace GigaBoy.Components.Graphics
                 var priority = sprite.BGPriority;
                 
                 var pixelData = new SpritePixelData() { Color = color, GB = ppu.GB, Palette = palette, BGPriority = priority };
+                if (i == 0 && ppu.SpriteDebugLines)
+                {
+                    pixelData = new SpritePixelData() { Color = 1, GB = ppu.GB, Palette = PaletteType.Debug, BGPriority = false };
+                }
 
                 if (pixelQueue.Count <= i)
                 {

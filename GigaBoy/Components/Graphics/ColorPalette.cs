@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GigaBoy.Components.Graphics
 {
-    public enum PaletteType : sbyte { Background,Sprite1,Sprite2 }
+    public enum PaletteType : sbyte { Background, Sprite1, Sprite2, Debug }
     /// <summary>
     /// ColorContainer stores System.Drawing.Color as an int, so it can be easily used with spans, and stackalloc.
     /// </summary>
@@ -33,14 +33,14 @@ namespace GigaBoy.Components.Graphics
     }
     public class ColorPalette
     {
-        public readonly byte[,] Palettes = new byte[3, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 } };
-        public readonly Color[] TruePalette = new Color[4] {Color.FromArgb(0xFF,0xFF,0xFF),Color.FromArgb(0xAA,0xAA,0xAA),Color.FromArgb(0x55,0x55,0x55),Color.FromArgb(0,0,0) };
+        public readonly byte[,] Palettes = new byte[4, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 4, 4, 4, 4 } };
+        public readonly Color[] TruePalette = new Color[5] {Color.FromArgb(0xFF,0xFF,0xFF),Color.FromArgb(0xAA,0xAA,0xAA),Color.FromArgb(0x55,0x55,0x55), Color.FromArgb(0, 0, 0), Color.FromArgb(255, 0, 0) };
         public Color GetTrueColor(byte colorIndex,PaletteType type) {
             unchecked
             {
-                if (type != PaletteType.Background && colorIndex == 0) return Color.Transparent;
+                if ((type != PaletteType.Background || type != PaletteType.Debug) && colorIndex == 0) return Color.Transparent;
                 colorIndex = (byte)(colorIndex & 0b11);
-                sbyte btype = (sbyte)(((sbyte)type)&0b11);
+                sbyte btype = (sbyte)(((sbyte)type) & 0b11);
                 if (btype > 2) return Color.Blue;
                 return TruePalette[Palettes[btype,colorIndex]];
             }
