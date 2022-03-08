@@ -10,8 +10,6 @@
              Unloaded="UserControl_Unloaded" 
              Drop="UserControl_Drop" 
              AllowDrop="True" 
-             KeyDown="UserControl_KeyDown" 
-             KeyUp="UserControl_KeyUp" 
              LostFocus="UserControl_LostFocus">
     <Grid>
         <Image x:Name="ImageBox" Stretch="UniformToFill" Width="320" Height="288"/>

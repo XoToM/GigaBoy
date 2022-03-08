@@ -1373,31 +1373,31 @@ namespace GigaBoy.Components
                     {
                         InterruptFlags = interrupts & ~InterruptType.VBlank;
                         address = 0x0040;
-                        GB.Log("Servicing the VBlank Interrupt");
+                        //GB.Log("Servicing the VBlank Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Stat))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Stat;
                         address = 0x0048;
-                        GB.Log("Servicing the Stat Interrupt");
+                        //GB.Log("Servicing the Stat Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Timer))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Timer;
                         address = 0x0050;
-                        GB.Log("Servicing the Timer Interrupt");
+                        //GB.Log("Servicing the Timer Interrupt");
                     }
                     else if (interrupts.HasFlag(InterruptType.Serial))
                     {
                         InterruptFlags = interrupts & ~InterruptType.Serial;
                         address = 0x0058;
-                        GB.Log("Servicing the Serial Interrupt");
+                        //GB.Log("Servicing the Serial Interrupt");
                     }
                     else
                     {
                         InterruptFlags = interrupts & ~InterruptType.Joypad;
                         address = 0x0060;
-                        GB.Log("Servicing the Joypad Interrupt");
+                        //GB.Log("Servicing the Joypad Interrupt");
                     }
 
                     yield return false;

@@ -306,7 +306,7 @@ namespace GigaBoy.Components.Graphics
 		public void FIFO_S0()
 		{
 			var spr = scanlineSprites.Peek(0);
-			if (PPU.ObjectSize) GB.Log($"Sprite {spr.PosX:X}, Address = {sprite_character_address:X}");
+			//if (PPU.ObjectSize) GB.Log($"Sprite {spr.PosX:X}, Address = {sprite_character_address:X}");
 			spritePlane1 = PPU.Fetch(sprite_character_address);
 		}
 		public void FIFO_S1()

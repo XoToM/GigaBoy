@@ -49,6 +49,10 @@ namespace GigaBoy_WPF.Components
 			ButtonMap[Key.LeftShift] = GameboyInput.Select;
 			ButtonMap[Key.Space] = GameboyInput.Start;
 
+			var win = Window.GetWindow(this);
+			win.KeyDown += UserControl_KeyDown;
+			win.KeyUp += UserControl_KeyUp;
+
 			RenderOptions.SetBitmapScalingMode(ImageBox, BitmapScalingMode.NearestNeighbor);
 			RenderOptions.SetEdgeMode(ImageBox, EdgeMode.Aliased);
 
