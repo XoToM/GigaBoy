@@ -91,6 +91,14 @@ namespace GigaBoy.Components.Mappers
                 {
                     case 0xFFFF:
                         return (byte)GB.CPU.InterruptEnable;
+                    case 0xFF04:
+                        return GB.Timers.GetDIV();
+                    case 0xFF05:
+                        return GB.Timers.GetTIMA();
+                    case 0xFF06:
+                        return GB.Timers.GetTMA();
+                    case 0xFF07:
+                        return GB.Timers.GetTAC();
                     case 0xFF0F:
                         return (byte)GB.CPU.InterruptFlags;
                     case 0xFF00:
@@ -158,6 +166,14 @@ namespace GigaBoy.Components.Mappers
                 {
                     case 0xFFFF:
                         GB.CPU.InterruptEnable = (InterruptType)(value & 31); return;
+                    case 0xFF04:
+                        GB.Timers.ResetDIV(); return;
+                    case 0xFF05:
+                        GB.Timers.ResetTimer(); return;
+                    case 0xFF06:
+                        GB.Timers.SetTMA(value); return;
+                    case 0xFF07:
+                        GB.Timers.SetTAC(value); return;
                     case 0xFF0F:
                         GB.CPU.InterruptFlags = (InterruptType)(value & 31); return;
                     case 0xFF00:

@@ -44,6 +44,7 @@ namespace GigaBoy.Components
                     while (sw.ElapsedTicks < durationTicks) { }
                     lock (GB)
                     {
+                        GB.Timers.Tick();
                         GB.PPU.Tick();
                         lastResult = GB.CPU.TickOnce();
                         if (AutoBreakpoint != DateTime.MinValue)

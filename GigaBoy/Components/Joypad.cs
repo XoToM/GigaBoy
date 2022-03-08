@@ -21,7 +21,6 @@ namespace GigaBoy.Components
 
         public void SetButton(GameboyInput button, bool state)
         {
-            //System.Diagnostics.Debug.WriteLine("Btn Press!");
             lock (GB)
             {
                 if (state)

@@ -20,6 +20,7 @@ namespace GigaBoy
         public RAM SRam { get { return MemoryMapper.SRam; } }
         public byte[] Rom { get { return MemoryMapper.RomImage; } set { MemoryMapper.RomImage = value; } }
         public SharpSM83 CPU { get; init; }
+        public Timers Timers { get; init; }
         public CPUClock Clock { get; init; }
         public Joypad Joypad { get; init; }
         public MemoryMapper MemoryMapper { get; init; }
@@ -41,6 +42,7 @@ namespace GigaBoy
             HRam = new(this, 128) { Type = RAMType.HRAM };
             PPU = new(this);
             CPU = new(this);
+            Timers = new() { GB = this };
             Clock = new(this);
             Joypad = new(this);
             MemoryMapper = MemoryMapper.GetMemoryMapper(this, filename);
@@ -55,6 +57,7 @@ namespace GigaBoy
             HRam = new(this, 128) { Type = RAMType.HRAM };
             PPU = new(this);
             CPU = new(this);
+            Timers = new() { GB = this };
             Clock = new(this);
             Joypad = new(this);
             MemoryMapper = MemoryMapper.GetMapperObject(this, 0, new byte[0x8000]);
