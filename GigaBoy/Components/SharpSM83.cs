@@ -9,7 +9,7 @@ namespace GigaBoy.Components
 {
     [Flags]
     public enum InterruptType : byte { VBlank=1,Stat=2,Timer=4,Serial=8,Joypad=16 }
-    public enum CPUMode : byte { Stopped,Running,Halted,LowPowerStop }
+    public enum CPUMode : byte { Stopped,Running,Halted, LowPowerStop }
     public class SharpSM83 : ClockBoundDevice
     {
         public int DelayTicks { get; protected set; } = 0;
@@ -20,6 +20,7 @@ namespace GigaBoy.Components
         public bool PrintOperation { get; set; } = false;
         public bool InstructionBreakpoints { get; set; } = false;
         public byte LastOpcode { get; protected set; } = 0;
+        public short DmaCounter = 0;
         public ushort LastPC { get; protected set; } = 0;
         protected IEnumerator<bool> InstructionProcessor;
         #region Registers
@@ -28,17 +29,23 @@ namespace GigaBoy.Components
         public byte C { get; set; }
         public byte D { get; set; }
         public byte E { get; set; }
-        public byte F { get { 
+        public byte F
+        {
+            get
+            {
                 var data = Zero ? 128 : 0;
                 data |= SubFlag ? 64 : 0;
                 data |= HalfCarry ? 32 : 0;
                 return (byte)(data | (Carry ? 16 : 0));
-            } set {
+            }
+            set
+            {
                 Zero = (value & 128) != 0;
                 SubFlag = (value & 64) != 0;
                 HalfCarry = (value & 32) != 0;
                 Carry = (value & 16) != 0;
-            } }
+            }
+        }
         public byte H { get; set; }
         public byte L { get; set; }
         public ushort HL
@@ -83,7 +90,8 @@ namespace GigaBoy.Components
         public InterruptType InterruptEnable { get; set; }
         public InterruptType InterruptFlags { get; set; }
         #endregion
-        public SharpSM83(GBInstance gb) {
+        public SharpSM83(GBInstance gb)
+        {
             GB = gb;
             InstructionProcessor = Processor().GetEnumerator();
             PC = 0x0100;
@@ -101,9 +109,20 @@ namespace GigaBoy.Components
         /// Processes a single tick of the cpu. CPU performs an action every 4 ticks, so most of the time this returns immediately. Returns true if an instruction has been successfully executed during this tick.
         /// </summary>
         /// <returns>true if an instruction has finished executing during this tick, false otherwise.</returns>
-        public bool TickOnce() {
+        public bool TickOnce()
+        {
             try
             {
+                --DmaCounter;
+                if (DmaCounter < 0)
+                {
+                    DmaCounter = 0;
+                }
+                else if (DmaCounter == 0)
+                {
+                    GB.PPU.DmaBlock = false;
+                }
+
                 if (DelayTicks-- <= 0)
                 {
                     DelayTicks = 3;
@@ -116,8 +135,9 @@ namespace GigaBoy.Components
                 }
                 return false;
             }
-            catch (Exception e) {
-                if(e.StackTrace is not null) GB.Log(e.StackTrace);
+            catch (Exception e)
+            {
+                if (e.StackTrace is not null) GB.Log(e.StackTrace);
                 GB.Error(e);
             }
             return false;
@@ -125,26 +145,31 @@ namespace GigaBoy.Components
         /// <summary>
         /// Same as TickOnce, just without the return value. I wanted this class to implement the ClockBoundDevice class, and the interface wants void.
         /// </summary>
-        public void Tick() {
+        public void Tick()
+        {
             TickOnce();
         }
         public static JObject? OpcodeDictionary { get; set; }
-        protected IEnumerable<bool> Processor() {
+        protected IEnumerable<bool> Processor()
+        {
             string s;
-            while (true) {
+            while (true)
+            {
                 CPUMode = CPUMode.Running;
                 byte opcode = Fetch();
-                Execute://I Don't like using goto either, but I think goto will be most effective here. Its here so I can skip the instruction fetch.
+            Execute://I Don't like using goto either, but I think goto will be most effective here. Its here so I can skip the instruction fetch.
                 LastOpcode = opcode;
                 LastPC = PC;
 
-                switch (opcode&0b11000000) {
+                switch (opcode & 0b11000000)
+                {
                     case 0:
                         byte data;
                         sbyte sdata;
                         ushort address;
                         int idata;
-                        switch (opcode & 0b00111111) {
+                        switch (opcode & 0b00111111)
+                        {
                             case 0:
                                 break;
                             case 1:
@@ -190,19 +215,19 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                address = (ushort)((data << 8) |Fetch());
+                                address = (ushort)((data << 8) | Fetch());
                                 yield return false;
-                                Store(address,(byte)(SP & 0x00FF));//Wrong?
+                                Store(address, (byte)(SP & 0x00FF));//Wrong?
                                 yield return false;
-                                Store(++address,(byte)(SP & 0xFF00));
+                                Store(++address, (byte)(SP & 0xFF00));
                                 break;
                             case 9:
                                 data = L;
                                 idata = HL + BC;
                                 yield return false;
-                                HL = (ushort)(idata&0xFFFF);
+                                HL = (ushort)(idata & 0xFFFF);
                                 HalfCarry = L < data;
-                                Carry = (idata&0xFFFF0000)!=0;
+                                Carry = (idata & 0xFFFF0000) != 0;
                                 SubFlag = false;
                                 break;
                             case 0xA:
@@ -240,6 +265,7 @@ namespace GigaBoy.Components
 
                             case 0x10:
                                 CPUMode = CPUMode.LowPowerStop;
+                                GB.Timers.ResetDIV();
                                 throw new NotImplementedException("STOP instruction has not been implemented yet.");
                             case 0x11:
                                 yield return false;
@@ -273,7 +299,7 @@ namespace GigaBoy.Components
                                 break;
                             case 0x17:
                                 idata = A & 128;
-                                A = (byte)((A << 1) | (Carry?1:0));
+                                A = (byte)((A << 1) | (Carry ? 1 : 0));
                                 Zero = false;
                                 HalfCarry = false;
                                 SubFlag = false;
@@ -400,7 +426,8 @@ namespace GigaBoy.Components
                                 break;
                             case 0x2A:
                                 yield return false;
-                                A = Fetch(HL++);
+                                A = Fetch(HL);
+                                ++HL;
                                 break;
                             case 0x2B:
                                 yield return false;
@@ -466,7 +493,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch(HL);
                                 yield return false;
-                                Store(HL,--data);
+                                Store(HL, --data);
                                 SubFlag = true;
                                 Zero = data == 0;
                                 HalfCarry = (data & 15) == 15;
@@ -475,7 +502,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 data = Fetch();
                                 yield return false;
-                                Store(HL,data);
+                                Store(HL, data);
                                 break;
                             case 0x37:
                                 Carry = true;
@@ -538,7 +565,8 @@ namespace GigaBoy.Components
                         byte val;
                         var source = opcode & 7;
                         var dest = (opcode >> 3) & 7;
-                        if (source == dest&&source==6) {
+                        if (source == dest && source == 6)
+                        {
                             if (InterruptMasterEnable)//HALT
                             {
                                 CPUMode = CPUMode.Halted;
@@ -549,7 +577,8 @@ namespace GigaBoy.Components
                                 CPUMode = CPUMode.Running;
                                 break;
                             }
-                            else {
+                            else
+                            {
                                 yield return true;
                                 opcode = Fetch();
                                 --PC;
@@ -608,7 +637,7 @@ namespace GigaBoy.Components
                                 break;
                             case 6:
                                 yield return false;
-                                Store(HL,val);
+                                Store(HL, val);
                                 break;
                             case 7:
                                 A = val;
@@ -623,7 +652,8 @@ namespace GigaBoy.Components
                         }
                         break;
                     case 128:
-                        switch (opcode & 7) {
+                        switch (opcode & 7)
+                        {
                             case 0:
                                 data = B;
                                 break;
@@ -652,7 +682,8 @@ namespace GigaBoy.Components
                             default:
                                 throw new NotImplementedException($"Invalid Opcode {opcode:X}");
                         }
-                        switch (opcode & 0b00111000) {
+                        switch (opcode & 0b00111000)
+                        {
                             case 0:
                                 idata = A + data;
                                 Carry = (idata & 0xFFFFFF00) != 0;
@@ -662,7 +693,7 @@ namespace GigaBoy.Components
                                 SubFlag = false;
                                 break;
                             case 8:
-                                idata = A + data + (Carry?1:0);
+                                idata = A + data + (Carry ? 1 : 0);
                                 Carry = (idata & 0xFFFFFF00) != 0;
                                 HalfCarry = (idata & 0xF) < (A & 0xF);
                                 A = (byte)idata;
@@ -678,7 +709,7 @@ namespace GigaBoy.Components
                                 SubFlag = true;
                                 break;
                             case 24:
-                                idata = A - data-(Carry?1:0);
+                                idata = A - data - (Carry ? 1 : 0);
                                 Carry = (idata & 0xFFFFFF00) != 0;
                                 HalfCarry = (idata & 0xF) > (A & 0xF);
                                 A = (byte)idata;
@@ -718,7 +749,8 @@ namespace GigaBoy.Components
                         }
                         break;
                     case 192:
-                        switch (opcode & 0b00111111) {
+                        switch (opcode & 0b00111111)
+                        {
                             case 0:
                                 yield return false;
                                 if (Zero) break;
@@ -826,7 +858,8 @@ namespace GigaBoy.Components
                             case 0xB:   //Prefix 0xCB command
                                 yield return false;
                                 byte operand = Fetch();
-                                switch (operand&7) {
+                                switch (operand & 7)
+                                {
                                     case 0:
                                         data = B;
                                         break;
@@ -856,11 +889,13 @@ namespace GigaBoy.Components
                                         throw new NotImplementedException($"Invalid Opcode CB{operand:X}");
                                 }
 
-                                int mask = 1 << ((operand>>3)&7);
+                                int mask = 1 << ((operand >> 3) & 7);
 
-                                switch (operand&0b11000000) {
+                                switch (operand & 0b11000000)
+                                {
                                     case 0:
-                                        switch (operand&0b00111000) {
+                                        switch (operand & 0b00111000)
+                                        {
                                             case 0:
                                                 idata = (data & 128) >> 7;
                                                 data = (byte)((data << 1) | idata);
@@ -879,7 +914,7 @@ namespace GigaBoy.Components
                                                 break;
                                             case 16:
                                                 idata = data & 128;
-                                                data = (byte)((data << 1) | (Carry?1:0));
+                                                data = (byte)((data << 1) | (Carry ? 1 : 0));
                                                 Zero = data == 0;
                                                 HalfCarry = false;
                                                 SubFlag = false;
@@ -913,12 +948,12 @@ namespace GigaBoy.Components
                                                 HalfCarry = false;
                                                 Carry = false;
                                                 Zero = data == 0;
-                                                data = (byte)((data<<4) | (data>>4));
+                                                data = (byte)((data << 4) | (data >> 4));
                                                 break;
                                             case 56:
                                                 SubFlag = false;
                                                 HalfCarry = false;
-                                                Carry = (data&1) != 0;
+                                                Carry = (data & 1) != 0;
                                                 data = (byte)(data >> 1);
                                                 break;
                                             default:
@@ -928,7 +963,7 @@ namespace GigaBoy.Components
                                     case 64:
                                         SubFlag = false;
                                         HalfCarry = true;
-                                        Zero = (mask&data) == 0;
+                                        Zero = (mask & data) == 0;
                                         break;
                                     case 128:
                                         data = (byte)(data & (~mask));
@@ -938,7 +973,8 @@ namespace GigaBoy.Components
                                         break;
                                 }
 
-                                if ((operand & 0b11000000) != 0b01000000) {
+                                if ((operand & 0b11000000) != 0b01000000)
+                                {
                                     switch (operand & 7)
                                     {
                                         case 0:
@@ -961,7 +997,7 @@ namespace GigaBoy.Components
                                             break;
                                         case 6:
                                             yield return false;
-                                            Store(HL,data);
+                                            Store(HL, data);
                                             break;
                                         case 7:
                                             A = data;
@@ -1155,9 +1191,9 @@ namespace GigaBoy.Components
 
                             case 0x20:  //LDH (a8), A
                                 yield return false;
-                                address = (ushort)(Fetch()|0xFF00);
+                                address = (ushort)(Fetch() | 0xFF00);
                                 yield return false;
-                                Store(address,A);
+                                Store(address, A);
                                 break;
                             case 0x21:
                                 yield return false;
@@ -1167,7 +1203,7 @@ namespace GigaBoy.Components
                                 break;
                             case 0x22:
                                 yield return false;
-                                Store((ushort)(0xFF00|C),A);
+                                Store((ushort)(0xFF00 | C), A);
                                 break;
                             case 0x25:
                                 yield return false;
@@ -1215,7 +1251,7 @@ namespace GigaBoy.Components
                                 yield return false;
                                 address = (ushort)((Fetch() << 8) | data);
                                 yield return false;
-                                Store(address,A);
+                                Store(address, A);
                                 break;
                             case 0x2E:
                                 yield return false;
@@ -1238,7 +1274,7 @@ namespace GigaBoy.Components
 
                             case 0x30:
                                 yield return false;
-                                address = (ushort)(0xFF00|Fetch());
+                                address = (ushort)(0xFF00 | Fetch());
                                 yield return false;
                                 A = Fetch(address);
                                 break;
@@ -1354,7 +1390,7 @@ namespace GigaBoy.Components
                                     foreach (JObject operandData in (JArray)operandsList)
                                     {
                                         var opcodeName = operandData["name"];
-                                        if(opcodeName is not null)
+                                        if (opcodeName is not null)
                                             s += " " + opcodeName.ToString();
                                     }
 
@@ -1366,7 +1402,8 @@ namespace GigaBoy.Components
                 }
                 //if (PC > 0x8000) GB.BreakpointHit();
                 yield return true;
-                if (InterruptMasterEnable && (((int)InterruptEnable & (int)InterruptFlags & 0x1F) != 0)) {
+                if (InterruptMasterEnable && (((int)InterruptEnable & (int)InterruptFlags & 0x1F) != 0))
+                {
                     ushort address;
                     var interrupts = InterruptEnable & InterruptFlags;
                     if (interrupts.HasFlag(InterruptType.VBlank))
@@ -1411,27 +1448,32 @@ namespace GigaBoy.Components
                 }
             }
         }
-        protected byte Fetch(ushort address,bool checkBreakpoints=true)
+        protected byte Fetch(ushort address, bool checkBreakpoints = true)
         {
-            if (checkBreakpoints && GB.Breakpoints.ContainsKey(address)) {
+            if (checkBreakpoints && GB.Breakpoints.ContainsKey(address))
+            {
                 LinkedList<BreakpointInfo>? breakpoints = GB.Breakpoints[address];
                 if (breakpoints == null || breakpoints.Count == 0)
                 {
                     GB.Breakpoints.Remove(address);
                 }
-                else {
-                    foreach (var breakpoint in breakpoints) {
-                        if (breakpoint.BreakOnRead) {
+                else
+                {
+                    foreach (var breakpoint in breakpoints)
+                    {
+                        if (breakpoint.BreakOnRead)
+                        {
                             GB.BreakpointHit();
                             break;
                         }
                     }
                 }
             }
-            return GB.MemoryMapper.GetByte(address);
+            return GetByte(address);
         }
-        protected void Store(ushort address,byte value)
+        protected void Store(ushort address, byte value)
         {
+            if (address == 0x9004) GB.Log($"[9004] = {value:X}");
             if (GB.Breakpoints.TryGetValue(address, out LinkedList<BreakpointInfo>? breakpoints))
             {
                 if (breakpoints == null || breakpoints.Count == 0)
@@ -1450,9 +1492,10 @@ namespace GigaBoy.Components
                     }
                 }
             }
-            GB.MemoryMapper.SetByte(address,value);
+            SetByte(address, value);
         }
-        protected void Jump(ushort address) {
+        protected void Jump(ushort address)
+        {
             if (GB.Breakpoints.TryGetValue(address, out LinkedList<BreakpointInfo>? breakpoints))
             {
                 if (breakpoints == null || breakpoints.Count == 0)
@@ -1473,11 +1516,9 @@ namespace GigaBoy.Components
             }
             PC = address;
         }
-        protected byte Fetch() {
-            if (PC == 0x0040) {
-                System.Diagnostics.Debug.WriteLine("BREAK");
-            }
-            
+        protected byte Fetch()
+        {
+
             if (GB.Breakpoints.TryGetValue(PC, out LinkedList<BreakpointInfo>? breakpoints))
             {
                 if (breakpoints == null || breakpoints.Count == 0)
@@ -1498,7 +1539,25 @@ namespace GigaBoy.Components
             }
             //if (PC == 0x02B7) System.Diagnostics.Debug.WriteLine($"Last PC: 0x{LastPC:X}");
             LastPC = PC;
-            return Fetch(PC++,false);
+            return GetByte(PC++);
+        }
+
+        public void StartDMA(ushort source, ushort count, ushort destination) {
+            DmaCounter = 160;
+            GB.PPU.DmaBlock = true;
+            for (int i = 0; i < count; i++) {
+                SetByte((ushort)(destination + i),GetByte( (ushort)(source + i), false),false);
+            }
+        }
+        protected byte GetByte(ushort address, bool checkDma=true)
+        {
+            if (checkDma && DmaCounter != 0) return 0xFF;
+            return GB.MemoryMapper.GetByte(address);
+        }
+        protected void SetByte(ushort address, byte value, bool checkDma=true)
+        {
+            if (checkDma && DmaCounter != 0) return;
+            GB.MemoryMapper.SetByte(address, value);
         }
         public void SetInterrupt(InterruptType interrupt) {
             InterruptFlags = InterruptFlags | interrupt;

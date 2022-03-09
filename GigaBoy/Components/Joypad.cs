@@ -44,14 +44,20 @@ namespace GigaBoy.Components
             int value;
             value = (int)Buttons;
             
-            if (JoypadBankHigher) value = ((int)value >> 4);
+            if (!JoypadBankHigher) value = ((int)value >> 4);
             return (byte)~(value & 0b00001111);
         }
 
         public void DirectWrite(ushort address, byte value)
         {
-            if ((value & 0b00100000) != 0) JoypadBankHigher = true;
-            if ((value & 0b00010000) != 0) JoypadBankHigher = false;
+            if ((value & 0b00100000) != 0) { 
+                JoypadBankHigher = true;
+                //System.Diagnostics.Debug.WriteLine("HigherJoypad");
+            }
+            if ((value & 0b00010000) != 0) { 
+                JoypadBankHigher = false;
+                //System.Diagnostics.Debug.WriteLine("LowerJoypad");
+            }
         }
 
         public byte Read(ushort address)

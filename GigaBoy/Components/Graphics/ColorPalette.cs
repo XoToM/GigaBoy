@@ -33,8 +33,8 @@ namespace GigaBoy.Components.Graphics
     }
     public class ColorPalette
     {
-        public readonly byte[,] Palettes = new byte[4, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 4, 5, 4, 5 } };
-        public readonly Color[] TruePalette = new Color[6] {Color.FromArgb(0xFF,0xFF,0xFF),Color.FromArgb(0xAA,0xAA,0xAA),Color.FromArgb(0x55,0x55,0x55), Color.FromArgb(0, 0, 0), Color.FromArgb(0, 0, 255), Color.FromArgb(0, 255, 0) };
+        public readonly byte[,] Palettes = new byte[4, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 4, 4, 5, 6 } };
+        public readonly Color[] TruePalette = new Color[7] { Color.FromArgb(0xFF,0xFF,0xFF), Color.FromArgb(0xAA,0xAA,0xAA), Color.FromArgb(0x55,0x55,0x55), Color.FromArgb(0, 0, 0), Color.FromArgb(0, 0, 255), Color.FromArgb(0, 255, 0), Color.DeepPink };
         public Color GetTrueColor(byte colorIndex,PaletteType type) {
             unchecked
             {

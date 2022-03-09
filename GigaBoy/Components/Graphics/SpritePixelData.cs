@@ -13,6 +13,7 @@ namespace GigaBoy.Components.Graphics
         public byte Color { get; init; }
         public PaletteType Palette { get; init; }
         public bool BGPriority { get; init; }
+        public (int, int) spritePos;
         public static void MixSprite(PPU ppu, byte plane1, byte plane2, OamSprite sprite) {
             if (!ppu.ObjectEnable) return;
             var pixelQueue = ppu.PictureProcessor.spritePixelQueue;
@@ -23,10 +24,10 @@ namespace GigaBoy.Components.Graphics
                 var palette = sprite.Palette;
                 var priority = sprite.BGPriority;
                 
-                var pixelData = new SpritePixelData() { Color = color, GB = ppu.GB, Palette = palette, BGPriority = priority };
+                var pixelData = new SpritePixelData() { Color = color, GB = ppu.GB, Palette = palette, BGPriority = priority, spritePos=(0,0) };
                 if (i == 0 && ppu.SpriteDebugLines)
                 {
-                    pixelData = new SpritePixelData() { Color = (byte)((ppu.LY % 2) + 1), GB = ppu.GB, Palette = PaletteType.Debug, BGPriority = false };
+                    pixelData = new SpritePixelData() { Color = (byte)((ppu.LY % 2) + 1), GB = ppu.GB, Palette = PaletteType.Debug, BGPriority = false, spritePos=(sprite.PosX, Math.Max(sprite.PosY-16,0)) };
                 }
 
                 if (pixelQueue.Count <= i)

@@ -58,7 +58,7 @@ namespace GigaBoy.Components.Graphics
 		public void Tick()
 		{
 			if ((spriteFetcherStatus == SpriteFetcherMode.Off) && (scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8 )) {
-				if (!PPU.ObjectEnable)
+				if (!PPU.ObjectEnable && PPU.DmaBlock)
 				{
 					while ((scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8))
 					{
@@ -68,7 +68,7 @@ namespace GigaBoy.Components.Graphics
 				else
 				{
 					//GB.Log("Sprite Hit Registered");
-					if(PPU.ObjectEnable)spriteFetcherStatus = SpriteFetcherMode.TileId;
+					if(PPU.ObjectEnable && !PPU.DmaBlock)spriteFetcherStatus = SpriteFetcherMode.TileId;
 				}
 			}
 			if (spriteFetcherStatus == SpriteFetcherMode.Off)
@@ -88,6 +88,7 @@ namespace GigaBoy.Components.Graphics
 				}
 			}
 			if (timerToggle) {              //TODO: Implement the finite state machine for fetching sprite tiles
+				if (PPU.DmaBlock || !PPU.ObjectEnable) spriteFetcherStatus = SpriteFetcherMode.Off;
 				switch (spriteFetcherStatus) {
 					case SpriteFetcherMode.Off:
 						switch (WindowState)
@@ -195,6 +196,7 @@ namespace GigaBoy.Components.Graphics
 						}
 						break;
 					case SpriteFetcherMode.TileId:
+						
 						FIFO_SprF();
 						spriteFetcherStatus = SpriteFetcherMode.Plane1;
 						break;
@@ -386,14 +388,22 @@ namespace GigaBoy.Components.Graphics
 			var palette = PaletteType.Background;
 
 			if (!spritePixelQueue.TryDequeue(out var spritePixel)) spritePixel = new SpritePixelData() { BGPriority = false, Color = 0, Palette = PaletteType.Sprite1, GB = GB };
+			if (!PPU.ObjectEnable || PPU.DmaBlock) spritePixel = spritePixel with { Color = 0 };
 
 			if (spritePixel.Color != 0 && ((!spritePixel.BGPriority) || (spritePixel.BGPriority && (color == 0))))
 			{
 				color = spritePixel.Color;
-				palette = spritePixel.Palette;
+				palette = spritePixel.Palette; 
+
+				//Debug statements
+				PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
 			}
 
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
+
+			//Debug statements
+			if (PPU.ObjectSize&&Debug) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
+			if (PPU.ObjectEnable&&Debug) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
 		}
 		public void SetPixel(ColorContainer pixel) {
 			if (xPixel < 0) {
@@ -445,6 +455,7 @@ namespace GigaBoy.Components.Graphics
 		public void SearchOAM() {
 			//GB.Log("OAM Scan Start");
 			if (scanlineSprites.Count != 0) scanlineSprites.Clear();
+			if (!PPU.ObjectEnable || PPU.DmaBlock) return;
 			int miny,maxy;
 			miny = LY+9;
 
