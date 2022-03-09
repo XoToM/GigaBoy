@@ -80,7 +80,7 @@ namespace GigaBoy.Components
         {
             return TMA;
         }
-        public void GetTMA(byte value)
+        public void SetTMA(byte value)
         {
             TMA = value;
         }

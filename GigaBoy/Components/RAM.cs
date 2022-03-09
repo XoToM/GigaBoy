@@ -24,15 +24,14 @@ namespace GigaBoy.Components
         }
         public virtual bool Available()
         {
-            //If a DMA transfer is running return false, if not continue. HRAM isnt used by DMA.
-            //TODO: Uncomment this when DMA is finished.
-            //if(Type!=RAMType.HRAM&&DMA.Active)return false;
+            return true;
+            /*              //Emulator's timings are currently incorrect. I prioritize compatibiity over accuracy in this case, so it currently always returns true.
             return Type switch
             {
                 RAMType.SRAM or RAMType.RAM or RAMType.HRAM => true,
                 RAMType.OAM => GB.PPU.Enabled && (GB.PPU.State == PPUStatus.VBlank || GB.PPU.State == PPUStatus.HBlank),
                 _ => false,
-            };
+            };*/
         }
 
         public virtual byte Read(ushort address)
@@ -70,7 +69,7 @@ namespace GigaBoy.Components
                 DirectWrite(address, value);
             }
             else {
-                GB.Log($"Writing to {Type}, while {Type} is disabled");
+                GB.Log($"Writing to Ram its disabled [{address:X}] = {value:X}");
             }
         }
         public virtual void Write(int address, byte value) {

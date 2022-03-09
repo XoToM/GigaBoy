@@ -58,7 +58,7 @@ namespace GigaBoy_WPF
         }
 
         public static string? RomFilePath { get; private set; }
-        public static WriteableBitmap VisibleImage { get; private set; } = new(160,144,96,96,System.Windows.Media.PixelFormats.Bgra32,null);
+        public static WriteableBitmap VisibleImage { get; private set; } = new(160, 144, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null);
 
 
         public static event EventHandler? GigaboyRefresh;
@@ -73,7 +73,7 @@ namespace GigaBoy_WPF
             //image.Buffer.Fill(new ColorContainer(255, 255, 255));
 
             for (int i = 0; i < TileBitmaps.Length; i++) {
-                var bmp = new WriteableBitmap(8,8,96,96,System.Windows.Media.PixelFormats.Bgra32,null);
+                var bmp = new WriteableBitmap(8, 8, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null);
                 //DrawGB(bmp,image,0,0);
                 TileBitmaps[i] = bmp;
             }
@@ -107,6 +107,7 @@ namespace GigaBoy_WPF
             GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
             GB.BreakpointsEnable = true;
+            GB.PPU.SpriteDebugLines = true;
             //GB.SpeedMultiplier = 5000;
             //GB.FrameAutoRefreshTreshold = double.MaxValue;
             Render(true);
@@ -116,7 +117,7 @@ namespace GigaBoy_WPF
         {
             GB?.Stop();
             MainWindow.Main?.Dispatcher.InvokeAsync(Stop);
-            Debug.WriteLine($"Breakpoint Hit {(_gbRunner is not null)}");
+            Debug.WriteLine($"Breakpoint Hit {_gbRunner is not null}");
         }
 
         public static void Start() {

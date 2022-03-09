@@ -7,16 +7,6 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="450">
     <Grid KeyUp="Grid_KeyUp">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width = "*"/>
-            <ColumnDefinition Width = "auto"/>
-            <ColumnDefinition Width = "*"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height = "*"/>
-            <RowDefinition Height = "auto"/>
-            <RowDefinition Height = "*"/>
-        </Grid.RowDefinitions>
-        <components:GameView Grid.Column="1" Grid.Row="1" />
+        <components:GameView/>
     </Grid>
 </Window>

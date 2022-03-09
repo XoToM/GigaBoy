@@ -19,6 +19,7 @@ namespace GigaBoy.Components.Graphics
         public ColorPalette Palette { get; init; }
         public PictureProcessor PictureProcessor { get; init; }
         public OamRam OAM { get; init; }
+        public bool DmaBlock { get; set; } = false;
 
         public IEnumerator<PPUStatus> Renderer { get; protected set; }
 
@@ -317,7 +318,7 @@ namespace GigaBoy.Components.Graphics
                     GB.CPU.SetInterrupt(InterruptType.VBlank);
                     if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
                     FrameDone();
-                    for (int i = 0; i < 10; i++)
+                    while(LY<=0x99)
                     {
                         //Log($"VBlank = {LY}");
                         yield return PPUStatus.VBlank;
@@ -394,7 +395,7 @@ namespace GigaBoy.Components.Graphics
         {
             if (Debug) GB.Log(text);
         }
-        public byte Fetch(ushort address) { //TODO: Add OAM to this check
+        public byte Fetch(ushort address) {
             if (address < 0x8000 || address > 0x9FFF) {
                 GB.Error($"PPU attempted to fetch an address outside of VRam ({address:X})");
                 throw new AccessViolationException($"PPU attempted to fetch an address outside of VRam ({address:X})");

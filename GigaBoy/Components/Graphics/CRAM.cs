@@ -18,13 +18,16 @@ namespace GigaBoy.Components.Graphics
 
 		}
 		public override bool Available() {
-			return GB.PPU.State != PPUStatus.GenerateFrame || !GB.PPU.Enabled;
+			if (!((GB.PPU.State != PPUStatus.GenerateFrame) || !GB.PPU.Enabled)) {
+				GB.Log($"!w ppu = {GB.PPU.State},  enabled={GB.PPU.Enabled}, LY={GB.PPU.LY:X}");
+				return false;
+			}
+			return (GB.PPU.State != PPUStatus.GenerateFrame) || !GB.PPU.Enabled;
 		}
 		public override void DirectWrite(ushort address, byte value)
 		{
-			//if(!Modified)GB.BreakpointHit();
 			base.DirectWrite(address, value);
-			ModifiedCharacters[address/16] = true;
+			ModifiedCharacters[address / 16] = true;
 			Modified = true;
 		}
 		public void GetCharacter(ref Span2D<ColorContainer> span2D, int characterID, ColorPalette palette, PaletteType paletteType)

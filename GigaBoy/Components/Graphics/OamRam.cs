@@ -19,7 +19,8 @@ namespace GigaBoy.Components.Graphics
         }
         public override bool Available()
         {
-            return (GB.PPU.State != PPUStatus.GenerateFrame) || (GB.PPU.State != PPUStatus.OAMSearch) || !GB.PPU.Enabled;
+            //OAM is currently always enabled as the emulator's timmings are currently incorrect
+            return true;//(!GB.PPU.Enabled)||((GB.PPU.State != PPUStatus.GenerateFrame) && (GB.PPU.State != PPUStatus.OAMSearch) && GB.PPU.Enabled);
         }
         public override void DirectWrite(ushort address, byte value)
         {

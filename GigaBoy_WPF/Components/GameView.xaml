@@ -12,6 +12,6 @@
              AllowDrop="True" 
              LostFocus="UserControl_LostFocus">
     <Grid>
-        <Image x:Name="ImageBox" Stretch="UniformToFill" Width="320" Height="288"/>
+        <Image x:Name="ImageBox" Stretch="Uniform"/>
     </Grid>
 </UserControl>

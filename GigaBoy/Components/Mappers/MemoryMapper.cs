@@ -232,7 +232,7 @@ namespace GigaBoy.Components.Mappers
         }
         public virtual void DirectWrite(int address, byte value)
         {
-            GB.Log($"Write to ROM [{address}] = {value}");
+            //GB.Log($"Write to ROM [{address:X}] = {value:X}");
             return;
             //StandartSetByte((ushort)address,value);
         }
