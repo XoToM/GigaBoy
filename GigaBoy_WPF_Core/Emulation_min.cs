@@ -43,7 +43,7 @@ namespace GigaBoy_WPF_Core
 			//GB.BacklogMaxSize = 50;
 			//GB.Clock.SpeedMultiplier = 1;
 			//GB.PPU.Debug = true;
-			GB.PPU.SpriteDebugLines = true;
+			GB.PPU.DebugLines = true;
 
 			GB.DebugLogging = true;
 			//GB.BacklogOnlyLogging = false;

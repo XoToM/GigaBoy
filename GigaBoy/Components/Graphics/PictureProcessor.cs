@@ -393,17 +393,17 @@ namespace GigaBoy.Components.Graphics
 			if (spritePixel.Color != 0 && ((!spritePixel.BGPriority) || (spritePixel.BGPriority && (color == 0))))
 			{
 				color = spritePixel.Color;
-				palette = spritePixel.Palette; 
+				palette = spritePixel.Palette;
 
 				//Debug statements
-				PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
+				if (Debug && PPU.DebugLines) PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
 			}
 
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 
 			//Debug statements
-			if (PPU.ObjectSize&&Debug) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
-			if (PPU.ObjectEnable&&Debug) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
+			if (PPU.ObjectSize&&Debug&&PPU.DebugLines) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
+			if (PPU.ObjectEnable&&Debug&&PPU.DebugLines) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
 		}
 		public void SetPixel(ColorContainer pixel) {
 			if (xPixel < 0) {
@@ -459,14 +459,10 @@ namespace GigaBoy.Components.Graphics
 			int miny,maxy;
 			miny = LY+9;
 
+			maxy = miny + 7;
 
-			if (PPU.ObjectSize)
-			{
-				maxy = miny + 15;
-			}
-			else {
-				maxy = miny + 7;
-			}
+			if (PPU.ObjectSize) miny -= 8;
+			
 
 			var oamQuerry = from spr in OAM where (spr.PosY >= miny) && (spr.PosY <= maxy) orderby spr.PosX select spr;
 			foreach(var spr in oamQuerry) {

@@ -107,7 +107,7 @@ namespace GigaBoy_WPF
             GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
             GB.BreakpointsEnable = true;
-            GB.PPU.SpriteDebugLines = true;
+            GB.PPU.DebugLines = true;
             //GB.SpeedMultiplier = 5000;
             //GB.FrameAutoRefreshTreshold = double.MaxValue;
             Render(true);
