@@ -18,6 +18,8 @@ namespace GigaBoy.Components.Graphics
 
 		}
 		public override bool Available() {
+			return true;
+			//Currently always true
 			if (!((GB.PPU.State != PPUStatus.GenerateFrame) || !GB.PPU.Enabled)) {
 				GB.Log($"!w ppu = {GB.PPU.State},  enabled={GB.PPU.Enabled}, LY={GB.PPU.LY:X}");
 				return false;

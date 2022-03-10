@@ -100,14 +100,14 @@ namespace GigaBoy_WPF
                 GB = new GBInstance();
             }
             GB.Breakpoint += GB_Breakpoint;
-            GB.CPU.Debug = true;
+            //GB.CPU.Debug = true;
             //GB.PPU.Debug = true;
             //GB.CPU.PrintOperation = true;   //Warning: Setting this to true while BacklogOnlyLogging is set to false will defenestrate performance. Enable at your own risk!
-            GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
-            GB.BacklogOnlyLogging = false;
+            //GB.DebugLogging = true;   //Warning: Setting this to true might defenestrate performance. Enable at your own risk!
+            //GB.BacklogOnlyLogging = false;
             GB.PPU.FrameRendered += OnFrame;
-            GB.BreakpointsEnable = true;
-            GB.PPU.DebugLines = true;
+            //GB.BreakpointsEnable = true;
+            //GB.PPU.DebugLines = true;
             //GB.SpeedMultiplier = 5000;
             //GB.FrameAutoRefreshTreshold = double.MaxValue;
             Render(true);

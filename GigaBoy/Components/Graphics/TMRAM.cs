@@ -17,7 +17,8 @@ namespace GigaBoy.Components.Graphics
         }
         public override bool Available()
         {
-            return GB.PPU.State != PPUStatus.GenerateFrame || !GB.PPU.Enabled;
+            //Currently always true
+            return true; //GB.PPU.State != PPUStatus.GenerateFrame || !GB.PPU.Enabled;
         }
         public override void DirectWrite(ushort address, byte value)
         {

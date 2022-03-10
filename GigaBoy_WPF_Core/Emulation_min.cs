@@ -43,11 +43,11 @@ namespace GigaBoy_WPF_Core
 			//GB.BacklogMaxSize = 50;
 			//GB.Clock.SpeedMultiplier = 1;
 			//GB.PPU.Debug = true;
-			GB.PPU.DebugLines = true;
+			//GB.PPU.DebugLines = true;
 
-			GB.DebugLogging = true;
+			//GB.DebugLogging = true;
 			//GB.BacklogOnlyLogging = false;
-			GB.PPU.ClearColor = new(255,0,0);
+			//GB.PPU.ClearColor = new(255,0,0);
             GB.PPU.FrameRendered += PPU_FrameRendered;
 		}
 

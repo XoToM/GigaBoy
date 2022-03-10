@@ -89,8 +89,8 @@ namespace GigaBoy.Components.Mappers
             {
                 switch (address)
                 {
-                    case 0xFFFF:
-                        return (byte)GB.CPU.InterruptEnable;
+                    case 0xFF00:
+                        return GB.Joypad.Read((ushort)(address - 0xFF00));
                     case 0xFF04:
                         return GB.Timers.GetDIV();
                     case 0xFF05:
@@ -101,8 +101,6 @@ namespace GigaBoy.Components.Mappers
                         return GB.Timers.GetTAC();
                     case 0xFF0F:
                         return (byte)GB.CPU.InterruptFlags;
-                    case 0xFF00:
-                       return GB.Joypad.Read((ushort)(address - 0xFF00));
                     case 0xFF40:
                         return GB.PPU.LCDC;
                     case 0xFF41:
@@ -128,6 +126,8 @@ namespace GigaBoy.Components.Mappers
                         return GB.PPU.WY;
                     case 0xFF4B:
                         return GB.PPU.WX;
+                    case 0xFFFF:
+                        return (byte)GB.CPU.InterruptEnable;
                     default:
                         if (address >= 0xFF80) return GB.HRam.Read((ushort)(address - 0xFF80));
                         return 0xFF;
