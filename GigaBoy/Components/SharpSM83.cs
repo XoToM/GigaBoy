@@ -113,14 +113,14 @@ namespace GigaBoy.Components
         {
             try
             {
-                --DmaCounter;
-                if (DmaCounter < 0)
+                if (DmaCounter <= 0)
                 {
                     DmaCounter = 0;
-                }
-                else if (DmaCounter == 0)
-                {
                     GB.PPU.DmaBlock = false;
+                }
+                else
+                {
+                    --DmaCounter;
                 }
 
                 if (DelayTicks-- <= 0)
@@ -1551,12 +1551,12 @@ namespace GigaBoy.Components
         }
         protected byte GetByte(ushort address, bool checkDma=true)
         {
-            if (checkDma && DmaCounter != 0) return 0xFF;
+            if (checkDma && DmaCounter != 0 && address < 0xFF00) return 0xFF;
             return GB.MemoryMapper.GetByte(address);
         }
         protected void SetByte(ushort address, byte value, bool checkDma=true)
         {
-            if (checkDma && DmaCounter != 0) return;
+            if (checkDma && DmaCounter != 0 && address < 0xFF00) return;
             GB.MemoryMapper.SetByte(address, value);
         }
         public void SetInterrupt(InterruptType interrupt) {

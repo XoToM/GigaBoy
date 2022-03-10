@@ -25,6 +25,7 @@ namespace GigaBoy.Components.Graphics
         public override void DirectWrite(ushort address, byte value)
         {
             //base.DirectWrite(address, value);
+            if ((address / 4) >= 40) return;
             var prop = address % 4;
             var entry = GetOamEntry(address / 4);
             switch (prop)
@@ -52,7 +53,9 @@ namespace GigaBoy.Components.Graphics
                 tm.GetBlockHorizontal(x,y+i,tilemap.Buffer.Slice(y*tilemap.Width+x,tilemap.Width));
             }
         }
-        public OamSprite GetOamEntry(int index) {
+        public OamSprite GetOamEntry(int index)
+        {
+            if (index >= 40 || index<0) return new OamSprite() { PosX=0, PosY=0, Attributes=0, TileID=0 };
             //int baseAddress = base.DirectRead(index * 4);
             //return new OamSprite() { PosY = DirectRead(baseAddress), PosX = DirectRead(baseAddress + 1), TileID = DirectRead(baseAddress + 2), Attributes = DirectRead(baseAddress + 3) };
             return SpriteData[index];

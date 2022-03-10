@@ -253,6 +253,7 @@ namespace GigaBoy.Components.Graphics
             {
                 //lastPxl = (x, y);
                 //Log($"Pixel Set at ({x}, {y})");
+                if (x >= 160 | y >= 144) return;
                 var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
                 screen[y, x] = color;
             }
