@@ -23,10 +23,12 @@ namespace GigaBoy_WPF.Windows
     /// </summary>
     public partial class DebuggerWindow : Window
     {
+        public static DebuggerWindow? Instance { get; private set; } = null;
         public ICommand EmulatorControlCommand => Emulation.EmulatorControlCommand;
         public CustomBackgroundBlock PCIndicator = new(0x100,1,Brushes.Aquamarine,"Program Counter");
         public DebuggerWindow()
         {
+            Instance = this;
             Emulation.GigaboyRefresh += Emulation_GigaboyRefresh;
             Emulation.GBFrameReady += Emulation_GBFrameReady;
             InitializeComponent();
@@ -98,6 +100,13 @@ namespace GigaBoy_WPF.Windows
                 })
             };
             HexViewerMain.ContextMenu.Items.Add(pcViewItem);
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Emulation.GigaboyRefresh -= Emulation_GigaboyRefresh;
+            Emulation.GBFrameReady -= Emulation_GBFrameReady;
+            Instance = null;
         }
     }
 }

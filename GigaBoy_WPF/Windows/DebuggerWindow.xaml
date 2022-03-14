@@ -9,7 +9,7 @@
         xmlns:Core="clr-namespace:WpfHexaEditor.Core;assembly=WPFHexaEditor" x:Class="GigaBoy_WPF.Windows.DebuggerWindow"
         xmlns:HexCore="clr-namespace:WpfHexaEditor.Core;assembly=WPFHexaEditor"
         mc:Ignorable="d"
-        Title="DebuggerWindow" Height="450" Width="800" Loaded="Window_Loaded">
+        Title="DebuggerWindow" Height="450" Width="800" Loaded="Window_Loaded" Closed="Window_Closed" >
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="5"/>

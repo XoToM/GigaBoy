@@ -92,7 +92,16 @@ namespace GigaBoy_WPF.Components
 
         private void UserControl_KeyUp(object sender, KeyEventArgs e)
 		{
-			if (ButtonMap.ContainsKey(e.Key)) Emulation.GB?.Joypad.SetButton(ButtonMap.GetValueOrDefault(e.Key), false);
+			if (ButtonMap.ContainsKey(e.Key))
+			{
+				Emulation.GB?.Joypad.SetButton(ButtonMap.GetValueOrDefault(e.Key), false);
+			}
+			else {
+				if (Windows.DebuggerWindow.Instance is null && e.Key == Key.D) {
+					new Windows.DebuggerWindow().Show();
+				}
+			}
+
 		}
 
         private void UserControl_LostFocus(object sender, RoutedEventArgs e)

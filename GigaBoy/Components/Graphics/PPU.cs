@@ -319,10 +319,10 @@ namespace GigaBoy.Components.Graphics
                     GB.CPU.SetInterrupt(InterruptType.VBlank);
                     if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
                     FrameDone();
-                    while(LY<=0x99)
+                    while(LY<=0x99)         //IMPORTANT ToDo: This whole thing is wrong: The emulator starts incrementing Ly much faster than its supposed to (1 dot per increment), resulting in a much shorter vblank period. This is also probably the reason for the roms crashing and using vram when its disabled.
                     {
                         //Log($"VBlank = {LY}");
-                        yield return PPUStatus.VBlank;
+                        for(int i=0;i<456;i++) yield return PPUStatus.VBlank;
                         ++LY;
                     }
                 }
