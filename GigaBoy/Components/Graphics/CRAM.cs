@@ -38,7 +38,7 @@ namespace GigaBoy.Components.Graphics
 			if (charData.Length < 8 * 8) throw new InsufficientMemoryException();
 			palette.ToColors(Memory.AsSpan(characterID * 16, 16), charData, paletteType);
 			for (int i = 0; i < charData.Length; i += 8) {
-				charData.Slice(i,8).Reverse();
+				charData.Slice(i, 8).Reverse();
 			}
 		}
 		public void GetCharacter(ref Span<ColorContainer> charData, int characterID, ColorPalette palette, PaletteType paletteType)

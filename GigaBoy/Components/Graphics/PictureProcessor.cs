@@ -396,14 +396,14 @@ namespace GigaBoy.Components.Graphics
 				palette = spritePixel.Palette;
 
 				//Debug statements
-				if (Debug && PPU.DebugLines) PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
+				if (Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
 			}
 
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 
 			//Debug statements
-			if (PPU.ObjectSize&&Debug&&PPU.DebugLines) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
-			if (PPU.ObjectEnable&&Debug&&PPU.DebugLines) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
+			if (PPU.ObjectSize && Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
+			if (PPU.ObjectEnable && Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
 		}
 		public void SetPixel(ColorContainer pixel) {
 			if (xPixel < 0) {

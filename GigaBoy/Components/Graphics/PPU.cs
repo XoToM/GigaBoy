@@ -319,10 +319,10 @@ namespace GigaBoy.Components.Graphics
                     GB.CPU.SetInterrupt(InterruptType.VBlank);
                     if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
                     FrameDone();
-                    while(LY<=0x99)         //IMPORTANT ToDo: This whole thing is wrong: The emulator starts incrementing Ly much faster than its supposed to (1 dot per increment), resulting in a much shorter vblank period. This is also probably the reason for the roms crashing and using vram when its disabled.
+                    while(LY <= 0x99)         //IMPORTANT ToDo: This whole thing is wrong: The emulator starts incrementing Ly much faster than its supposed to (1 dot per increment), resulting in a much shorter vblank period. This is also probably the reason for the roms crashing and using vram when its disabled.
                     {
                         //Log($"VBlank = {LY}");
-                        for(int i=0;i<456;i++) yield return PPUStatus.VBlank;
+                        for(int i = 0; i < 456; i++) yield return PPUStatus.VBlank;
                         ++LY;
                     }
                 }
@@ -394,10 +394,10 @@ namespace GigaBoy.Components.Graphics
 
         public void Log(string text)
         {
-            if (Debug) GB.Log(text);
+            if (Debug && GBInstance.DEBUG) GB.Log(text);
         }
         public byte Fetch(ushort address) {
-            if (address < 0x8000 || address > 0x9FFF) {
+            if ((address < 0x8000 || address > 0x9FFF) && GBInstance.DEBUG) {
                 GB.Error($"PPU attempted to fetch an address outside of VRam ({address:X})");
                 throw new AccessViolationException($"PPU attempted to fetch an address outside of VRam ({address:X})");
             }

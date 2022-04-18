@@ -10,6 +10,8 @@ namespace GigaBoy
 {
     public class GBInstance
     {
+        public const bool DEBUG = false; //Enable/Disable to disable all debug features. When this is false the compiler wil likely optimise out all debug features.
+
         public static GBInstance? LastInstance = null;
         public event EventHandler? Breakpoint;
         public PPU PPU { get; init; }
@@ -68,12 +70,13 @@ namespace GigaBoy
             Log("DMG instance initialised");
         }
         public bool BacklogOnlyLogging { get; set; } = true;
+
         public int BacklogMaxSize = 500;
         private static Queue<string> LogBacklog;
         private StringBuilder logBuilder = new();
         public void Log(string data)
         {
-            if (DebugLogging) {
+            if (DebugLogging && DEBUG) {
                 if (!BacklogOnlyLogging)
                 {
                     if (LoggingBuffer) {
@@ -130,6 +133,7 @@ namespace GigaBoy
             MainLoop(true);
         }
         public void PrintBackLog() {
+            if (!DEBUG) return;
             if (BacklogOnlyLogging)
             {
                 Debug.WriteLine("   --  Backlog  --");
@@ -140,7 +144,7 @@ namespace GigaBoy
             Debug.WriteLine($"AF={CPU.AF:X}  BC={CPU.BC:X}  DE={CPU.DE:X}  HL={CPU.HL:X}  SP={CPU.SP:X}  PC={CPU.PC:X}  LastPC={CPU.LastPC:X}\n\n");
         }
         protected internal void BreakpointHit() {
-
+            if (!DEBUG) return;
             if (!BreakpointsEnable) return;
 
             PrintBackLog();
@@ -165,7 +169,9 @@ namespace GigaBoy
                 while (!Clock.Running) { }
             }
         }
-        public void AddBreakpoint(ushort address,BreakpointInfo breakpoint) {
+        public void AddBreakpoint(ushort address,BreakpointInfo breakpoint)
+        {
+            if (!DEBUG) return;
             if (Breakpoints.TryGetValue(address, out var breakpoints)) {
                 breakpoints.AddLast(breakpoint);
                 return;
