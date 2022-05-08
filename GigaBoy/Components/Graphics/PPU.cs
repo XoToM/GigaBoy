@@ -180,11 +180,21 @@ namespace GigaBoy.Components.Graphics
         public byte SCY { get; set; } = 0;
         public byte WX { get; set; } = 0;
         public byte WY { get; set; } = 0;
-        private byte _ly = 0;
-        public byte LY
+
+        //The LY register stores the Y coordinate of the currently rendered pixel.
+        //This register might show values which are higher than the gameboy's resolution during the V-Blank period,
+        //during which the hardware of the Gameboy keeps on updating this register as if the image was still being rendered even though its not.
+
+        private byte _ly = 0;   //The hidden field which stores the current scanline
+        //The LY property which accesses the y coordinate of the current scanline
+        public byte LY  
         {
-            get { return _ly; }
-            set { /*Log($"LY = {LY:X}, LYC = {LYC:X}");*/ _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
+            //The above field is returned here as the value
+            get { return _ly; } 
+
+            //When the emulator writes to this property the emulator will update the value of the above field, as well as set an interrupt if its necessary.
+            //The CPU class cannot write to this register.
+            protected set { _ly = value; if (_ly == LYC && LYCInterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat); }
         }
 
         public byte LYC { get; set; } = 0;
@@ -248,17 +258,20 @@ namespace GigaBoy.Components.Graphics
                 GB.Error(e);
             }
         }
-        public void SetPixel(int x,int y,ColorContainer color) {
+        public void SetPixel(int x, int y, ColorContainer color) {
             try
             {
-                //lastPxl = (x, y);
-                //Log($"Pixel Set at ({x}, {y})");
+                //Check if the given pixel is within the boundaries of the frame, and if not then return.
                 if (x >= 160 | y >= 144) return;
+
+                //Get a reference to the buffer.
                 var screen = new Span2D<ColorContainer>(frameBuffer, 160, 144);
+
+                //Change the colour at the given pixel in the buffer
                 screen[y, x] = color;
             }
             catch (Exception e) {
-                GB.Error(e);
+                GB.Error(e);    //If an error occurs then notify the user.
             }
         }
         /// <summary>
@@ -289,36 +302,59 @@ namespace GigaBoy.Components.Graphics
         {
             while (true)
             {
+                //Clear the frame buffer
                 Array.Fill(frameBuffer, ClearColor);
+                //Wait until the PPU is enabled. Skip this if its already enabled.
                 while (!Enabled)
                 {
                     yield return State;
                 }
+
+                //Reset the PPU's state to prepare it for rendering frames
                 PictureProcessor.Reset();
                 while (Enabled)
                 {
+                    //Set the current scanline to the first scanline from the top.
                     LY = 0;
+
+                    //Reset the PPU's state to prepare it for rendering the next frame
                     PictureProcessor.FullReset();
+                    //Repeat for every scanline in a frame
                     while (LY < 144)
                     {
+                        //Mark the PPU as busy with looking up sprites, and update the STAT register.
                         State = PPUStatus.OAMSearch;
+                        //Prepare the PictureProcessor class for rendendering a scanline
                         PictureProcessor.Start();
                         for (int i = 0; i < 80; i++) {
+                            //Wait for the correct period of time so the timings are correct. 
+                            //The Gameboy uses this time to read and compare sprite positions, and fetch up to 10 sprites which will be rendered during a scanline.
+                            //OAM is inaccessible to the CPU at this time, so I decided to make this check instant, and just wait for the correct period of time
                             yield return PPUStatus.OAMSearch;
                         }
+                        //Make a list of up to 10 sprites which will be rendered on this scanline. 
                         PictureProcessor.SearchOAM();
+                        //Mark the PPU as busy with rendering a frame, and update the STAT register.
                         State = PPUStatus.GenerateFrame;
+
+                        //For th rest of the scanline we tick the PictureProcessor class so it can render the frame. 
+                        //The PictureProcessor class also determines when the HBlank period starts and ends, as the HBlank's timings differ based on what was renered during the scanline.
                         for (int i = 0; i < 376; i++) {
                             PictureProcessor.Tick();
                             yield return State;
                         }
                         //Log($"Scanline = {LY}");
-                        //Task.Run(() => {System.Diagnostics.Debug.WriteLine($"Scanline = {LY}"); });
+                        //Increment the LY. This operation will also raise an interrupt if one is needed
                         ++LY;
                     }
+                    //Raise an interrupts which tells the CPU that VBlank has begun, and that its ok for it to access VRAM and OAM now.
                     GB.CPU.SetInterrupt(InterruptType.VBlank);
                     if (Mode1InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+                    
+                    //Switch the frame buffers and update the emulator's window
                     FrameDone();
+                    
+                    //Wait for the duration of the VBlank period. Update the LY register as well
                     while(LY <= 0x99)         //IMPORTANT ToDo: This whole thing is wrong: The emulator starts incrementing Ly much faster than its supposed to (1 dot per increment), resulting in a much shorter vblank period. This is also probably the reason for the roms crashing and using vram when its disabled.
                     {
                         //Log($"VBlank = {LY}");
@@ -353,7 +389,7 @@ namespace GigaBoy.Components.Graphics
             return bank.DirectRead(tile,16);
         }
         public void DrawRegion(Span2D<byte> tilemap,Span2D<ColorContainer> image,ushort tileDataAddr,PaletteType palette) {
-            if (image.Width < tilemap.Width * 8 || image.Height < tilemap.Height * 8) throw new OutOfMemoryException($"Image buffer needs to be at least {tilemap.Width * 8}x{tilemap.Height * 8}");
+            if (image.Width < tilemap.Width * 8 || image.Height < tilemap.Height * 8) throw new OutOfMemoryException($"Image buffer needs to have a size of at least {tilemap.Width * 8}x{tilemap.Height * 8}");
             Span<ColorContainer> colors = stackalloc ColorContainer[256];
             for (int y = 0; y < tilemap.Height; y++) {
                 for (int x = 0; x < tilemap.Width; x++) {

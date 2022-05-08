@@ -26,7 +26,7 @@ namespace GigaBoy.Components
 		protected IEnumerator<bool> InstructionProcessor;
 		#region Registers
 		public byte A { get; set; }     //The 8-bit register A
-		public byte B { get; set; }     //The 8-bit register B
+		public byte B { get; set; }      //The 8-bit register B
 		public byte C { get; set; }     //The 8-bit register C
 		public byte D { get; set; }     //The 8-bit register D
 		public byte E { get; set; }     //The 8-bit register E
@@ -48,9 +48,9 @@ namespace GigaBoy.Components
 				HalfCarry = (value & 32) != 0;
 				Carry = (value & 16) != 0;
 			}
-		}                
-		public byte H { get; set; }     //The 8-bit register H
-		public byte L { get; set; }     //The 8-bit register L
+		}
+		public byte H { get; set; }   //The 8-bit register H
+		public byte L { get; set; }   //The 8-bit register L
 		public ushort HL                // The 16-bit register pair HL
 		{
 			get
@@ -90,9 +90,9 @@ namespace GigaBoy.Components
 			}
 			set { A = (byte)((value & 0xFF00) >> 8); F = (byte)(value & 0xFF); }
 		}
-		public ushort SP { get; set; }     //The 16-bit register SP (Stack Pointer)
-		public ushort PC { get; set; }     //The 16-bit register PC (Program Counter)
-		public bool Zero { get; set; }     // The zero bit of the Flag register.
+		public ushort SP { get; set; }    //The 16-bit register SP (Stack Pointer)
+		public ushort PC { get; set; }    //The 16-bit register PC (Program Counter)
+		public bool Zero { get; set; }    // The zero bit of the Flag register.
 		public bool Carry { get; set; }
 		public bool SubFlag { get; set; }
 		public bool HalfCarry { get; set; }
@@ -225,11 +225,11 @@ namespace GigaBoy.Components
 								yield return false;
 								data = Fetch();
 								yield return false;
-								address = (ushort)((data << 8) | Fetch());
+								address = (ushort)((Fetch() << 8) | data);//Wrong?
 								yield return false;
-								Store(address, (byte)(SP & 0x00FF));//Wrong?
+								Store(address++, (byte)(SP & 0x00FF));
 								yield return false;
-								Store(++address, (byte)(SP & 0xFF00));
+								Store(address, (byte)((SP & 0xFF00) >> 8));
 								break;
 							case 9:
 								data = L;
@@ -1483,7 +1483,7 @@ namespace GigaBoy.Components
 		}
 		protected void Store(ushort address, byte value)
 		{
-			if (address == 0x9004) GB.Log($"[9004] = {value:X}");
+			//GB.Log($"[{address:X}] = {value:X}");
 			if (GB.Breakpoints.TryGetValue(address, out LinkedList<BreakpointInfo>? breakpoints) && GBInstance.DEBUG)
 			{
 				if (breakpoints == null || breakpoints.Count == 0)

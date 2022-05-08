@@ -224,14 +224,21 @@ namespace GigaBoy_WPF
         }
 
         public static void DrawGB(WriteableBitmap bitmap, Span2D<ColorContainer> image, int x, int y) {
+            //Make sure that the bitmap we are drawing to is large enough for our image to fit.
             if (bitmap.BackBufferStride < image.Width + x || bitmap.Height < image.Height + y) throw new ArgumentOutOfRangeException($"Bitmap is too small. It has to be at least {image.Width + x}x{image.Height + y}");
+            
+            //Request exclusive access to the bitmap's contents
             bitmap.Lock();
             try
             {
+                //Updating the bitmap quickly requires the use of pointers. In C# pointers are unsafe, so we have to tell the compiler that we know what we are doing here.
                 unsafe
                 {
-                    var stride = bitmap.BackBufferStride/sizeof(int);
+                    var stride = bitmap.BackBufferStride / sizeof(int);
+
+                    //Convert the pointers into a 2d span which unkike pointers, can be modified easily and safely.
                     Span2D<int> data = new(new Span<int>((void*)bitmap.BackBuffer, stride * bitmap.PixelHeight), stride, bitmap.PixelHeight);
+                    //Copy the bitmap pixel by pixel
                     for (int v = 0; v < image.Height; v++)
                     {
                         for (int u = 0; u < image.Width; u++)
@@ -241,9 +248,12 @@ namespace GigaBoy_WPF
                         }
                     }
                 }
+                //Tell the GPU that this area of the bitmap was updated, and that it should be rendered again.
                 bitmap.AddDirtyRect(new Int32Rect(x,y,image.Width,image.Height));
             }
             finally {
+                //Release the access lock to the data of the bitmap, and send the data to the GPU even if there were errors with drawing the image.
+                //Not releasing the lock when this method fails would cause much bigger problems.
                 bitmap.Unlock();
             }
         }

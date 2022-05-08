@@ -48,6 +48,7 @@ namespace GigaBoy
             Clock = new(this);
             Joypad = new(this);
             MemoryMapper = MemoryMapper.GetMemoryMapper(this, filename);
+            MemoryMapper.initRegisters();
         }
         public GBInstance()
         {
@@ -67,7 +68,7 @@ namespace GigaBoy
             PPU.Enabled = true;
             Clock.StopRequested = false;
             Clock.AutoBreakpoint = DateTime.MinValue;
-            Log("DMG instance initialised");
+            MemoryMapper.initRegisters();
         }
         public bool BacklogOnlyLogging { get; set; } = true;
 

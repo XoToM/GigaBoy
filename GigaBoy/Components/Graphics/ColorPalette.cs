@@ -33,15 +33,18 @@ namespace GigaBoy.Components.Graphics
     }
     public class ColorPalette
     {
+        //The 4 colour palettes of 4 colours each. The 4th palette is the debug palette, which is read-only.
+        //The palettes are defined in the following order:   Background,     Sprite 1         Sprite 2        Debug
         public readonly byte[,] Palettes = new byte[4, 4] { { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 0, 1, 2, 3 }, { 4, 4, 5, 6 } };
+        //The palette of predefined colours. It defines 7 unique colours used by the emulator, including colours used for debugging. Having the debug palette allowed me to easily add debug features directly in the rendering classes, instead of applying them as post-processing effects.
         public readonly Color[] TruePalette = new Color[7] { Color.FromArgb(0xFF,0xFF,0xFF), Color.FromArgb(0xAA,0xAA,0xAA), Color.FromArgb(0x55,0x55,0x55), Color.FromArgb(0, 0, 0), Color.FromArgb(0, 0, 255), Color.FromArgb(0, 255, 0), Color.DeepPink };
-        public Color GetTrueColor(byte colorIndex,PaletteType type) {
-            unchecked
+        public Color GetTrueColor(byte colorIndex, PaletteType type) {
+            unchecked   //Remove overflow checks to increase speed
             {
-                if ((type != PaletteType.Background || type != PaletteType.Debug) && colorIndex == 0) return Color.Transparent;
-                colorIndex = (byte)(colorIndex & 0b11);
-                sbyte btype = (sbyte)(((sbyte)type) & 0b11);
-                return TruePalette[Palettes[btype,colorIndex]];
+                //if ((type != PaletteType.Background || type != PaletteType.Debug) && colorIndex == 0) return Color.Transparent;
+                var cIndex = colorIndex & 0b11;     //Clamp the values to be between 0 and 3, which just so happens to be within the bounds of the Palette array
+                var btype = ((int)type) & 0b11;//Clamp the values to be between 0 and 3, which also just so happens to be within the bounds of the Colour Palette
+                return TruePalette[Palettes[btype,cIndex]];//Return the color at the clamped indexes
             }
         }
         public void SetColor(byte colorIndex, PaletteType type,byte color) {
@@ -71,6 +74,7 @@ namespace GigaBoy.Components.Graphics
 
         internal void SetPaletteByte(PaletteType paletteType, byte value)
         {
+            if (paletteType == PaletteType.Debug) return;
             var palette = (sbyte)paletteType;
             Palettes[palette, 3] = (byte)((value & 0b11000000) >> 6);
             Palettes[palette, 2] = (byte)((value & 0b00110000) >> 4);
@@ -80,11 +84,16 @@ namespace GigaBoy.Components.Graphics
 
         internal byte GetPaletteByte(PaletteType paletteType)
         {
-            var palette = (sbyte)paletteType;
-            var result = Palettes[palette, 3]<<6;
-            result |= Palettes[palette, 2]<<4;
-            result |= Palettes[palette, 1]<<2;
+            if(paletteType == PaletteType.Debug) return 0;  //The debug colour palette is not meant to be accessed through registers
+
+            var palette = (sbyte)paletteType; //Get the index into the table of colour palettes
+
+            //Convert the colours in the colour palette to 4 2-bit values and return them as a single byte.
+            var result = Palettes[palette, 3] << 6; 
+            result |= Palettes[palette, 2] << 4;
+            result |= Palettes[palette, 1] << 2;
             result |= Palettes[palette, 0];
+
             return (byte)result;
         }
     }

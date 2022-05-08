@@ -57,9 +57,12 @@ namespace GigaBoy.Components.Graphics
 
 		public void Tick()
 		{
-			if ((spriteFetcherStatus == SpriteFetcherMode.Off) && (scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8 )) {
+			// Check if there are any sprites waiting to be rendered on this pixel
+			if ((spriteFetcherStatus == SpriteFetcherMode.Off) && (scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8 )) 
+			{
 				if (!PPU.ObjectEnable && PPU.DmaBlock)
 				{
+					// Skip over the sprites if the sprites are disabled
 					while ((scanlineSprites.Count > 0) && (scanlineSprites.Peek(0).PosX == xPixel + 8))
 					{
 						scanlineSprites.Dequeue();
@@ -67,18 +70,21 @@ namespace GigaBoy.Components.Graphics
 				}
 				else
 				{
-					//GB.Log("Sprite Hit Registered");
-					if(PPU.ObjectEnable && !PPU.DmaBlock)spriteFetcherStatus = SpriteFetcherMode.TileId;
+					// Start fetching the sprite data
+					if(PPU.ObjectEnable && !PPU.DmaBlock) spriteFetcherStatus = SpriteFetcherMode.TileId;
 				}
 			}
 			if (spriteFetcherStatus == SpriteFetcherMode.Off)
 			{
-				//if (!PPU.WindowEnable) windowCheck = WindowCheckMode.Off;
+				//Check if there are enough pixels, and if so shift out and render one of them
 				if (BackgroundPixels > 8) ShiftOut();
+
+				//Check if the window is being displayed, and if not, check if it should be.
 				if (windowCheck == WindowCheckMode.Active)
 				{    //This check and several other checks in this function have been added to allow the WX=00 glitch to happen.
 					if (WindowYCondition && PPU.WindowEnable && PPU.WX == xPixel + 15)   //ToDo: Fix window glitch: Window renders 8 pixels to the right of where it should be, and leaves a color 0 block. xPixel + 15 is a temporary fix. Should be xPixel + 7
 					{       //The WX=A6 glitch is currently not supported.
+						//Clear the background pixel queue, and reset the fetcher to fetch window tiles next
 						windowCheck = WindowCheckMode.Off;
 						WindowState = WindowMode.Rendering;
 						State = FifoState.DummyT;
@@ -87,7 +93,7 @@ namespace GigaBoy.Components.Graphics
 					}
 				}
 			}
-			if (timerToggle) {              //TODO: Implement the finite state machine for fetching sprite tiles
+			if (timerToggle) {
 				if (PPU.DmaBlock || !PPU.ObjectEnable) spriteFetcherStatus = SpriteFetcherMode.Off;
 				switch (spriteFetcherStatus) {
 					case SpriteFetcherMode.Off:
@@ -210,10 +216,13 @@ namespace GigaBoy.Components.Graphics
 						break;
 				}
 			}
+			//Checks if there are pixels waiting to be pushed, and if so, pushes their bytes into the background pixel queue
 			if (performBackgroundPush && BackgroundPixels <= 8) {
+
 				EnqueuePixels(backgroundPushData.Item1,backgroundPushData.Item2);
 				performBackgroundPush = false;
 			}
+			//This boolean determines if the fetcher state machine should be stepped forward on the next tick
 			timerToggle = !timerToggle;
 		}
 
@@ -243,36 +252,42 @@ namespace GigaBoy.Components.Graphics
 			}
 		}
 		public void FIFO_W() {
-			byte ntbyte = PPU.Fetch(fetcher_address);
-			byte ysub = (byte)(LY-PPU.WY);
-			if (PPU.TileData)
+			byte ntbyte = PPU.Fetch(fetcher_address);//Fetch the next tile from VRAM
+			byte ysub = (byte)(LY-PPU.WY);  //Calculate which row of this tile should be fetched next
+
+			//Check which tileset should be used
+			if (PPU.TileData)	
 			{
+				//Calculate which adresses store this row of pixels in the VRAM
 				character_address = (ushort)((ntbyte << 4) | ((ysub & 0x7) << 1));
 				character_address |= 0x8000;
 			}
 			else
 			{
+				//Unlike the tileset above, this tileset uses signed bytes for tile indices
 				if (ntbyte < 128)
 				{
+					//Calculate which adresses store this row of pixels in the VRAM
 					character_address = (ushort)(((ntbyte) << 4) | ((ysub & 0x7) << 1));
-
 					character_address |= 0x9000;
 				}
-				else 
+				else
 				{
+					//Calculate which adresses store this row of pixels in the VRAM
 					character_address = (ushort)(((ntbyte & 0x7F) << 4) | ((ysub & 0x7) << 1));
-
 					character_address |= 0x8800;
 				}
 			}
 		}
+		//Fetch the lower byte of this row of the character
 		public void FIFO_0() {
-			character_plane1 = PPU.Fetch(character_address);
+			character_plane1 = PPU.Fetch(character_address);	//Fetch the lower byte from VRAM
 		}
+		//Fetch the higher byte of this row of the character
 		public void FIFO_1() {
-			character_plane2 = PPU.Fetch((ushort)(character_address + 1));
-			backgroundPushData = (character_plane1, character_plane2);
-			performBackgroundPush = true;
+			character_plane2 = PPU.Fetch((ushort)(character_address + 1));	//Fetch the higher byte from VRAM
+			backgroundPushData = (character_plane1, character_plane2);		//Merge the bytes together and store them for later
+			performBackgroundPush = true;	//Mark the fetcher cycle as finished, and notify the rest of the code that the bytes are waiting to be pushed onto the queue
 		}
 		public void FIFO_S() {
 			if (spritePhaseDelay != 0) {
@@ -383,39 +398,51 @@ namespace GigaBoy.Components.Graphics
 		}
 		public void ShiftOut()
 		{
-			byte color = DequeuePixel();
-			if (!PPU.BGWindowPriority) color = 0;
-			var palette = PaletteType.Background;
+			byte color = DequeuePixel();	//Shift out 1 colour index from the background pixel queue
+			if (!PPU.BGWindowPriority) color = 0;	//Force the colour with index 0 if rendering the tilemaps is disabled
+			var palette = PaletteType.Background;	//Set the palette to the background palette
 
+			//Dequeue one pixel from the sprite pixel queue
 			if (!spritePixelQueue.TryDequeue(out var spritePixel)) spritePixel = new SpritePixelData() { BGPriority = false, Color = 0, Palette = PaletteType.Sprite1, GB = GB };
+			//If the sprites are disabled hide this sprite pixel
 			if (!PPU.ObjectEnable || PPU.DmaBlock) spritePixel = spritePixel with { Color = 0 };
+
 
 			if (spritePixel.Color != 0 && ((!spritePixel.BGPriority) || (spritePixel.BGPriority && (color == 0))))
 			{
+				//If the sprite isn't transparent and isn't obstructed by the background set this pixel to the sprite pixel
 				color = spritePixel.Color;
 				palette = spritePixel.Palette;
 
-				//Debug statements
+				//Mark the current sprite's position with a dot. This is only used for debugging.
 				if (Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(spritePixel.spritePos.Item1,spritePixel.spritePos.Item2, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
 			}
 
+			//Send the colour value of the current pixel to the frame buffer
 			SetPixel(PPU.Palette.GetTrueColor(color, palette));
 
-			//Debug statements
+			//Draw a coloured line where the sprite is. This is only used for debugging the emulator or the roms it runs.
 			if (PPU.ObjectSize && Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(1, LY, PPU.Palette.GetTrueColor(3, PaletteType.Debug));
 			if (PPU.ObjectEnable && Debug && PPU.DebugLines && GBInstance.DEBUG) PPU.SetPixel(0, LY, PPU.Palette.GetTrueColor(2, PaletteType.Debug));
 		}
 		public void SetPixel(ColorContainer pixel) {
 			if (xPixel < 0) {
+				//If the current pixel is off screen, then we don't render anything here. This is how the Gameboy's hardware achieved scrolling, which is also the reason for why I decided to go with this approach as well.
+				//Don't fix something that isn't broken :)
 				++xPixel;
 				return;
 			}
-			PPU.SetPixel(xPixel++,LY,pixel);
-			if (xPixel == 160)
+			PPU.SetPixel(xPixel++, LY, pixel);	//Render the finished pixel to the framebuffer and increment the x coordinate of the renderer.
+			if (xPixel == 160) //This pixel was the last pixel of the scanline, which means the HBlank period has begun. 
 			{
-				Reset();
+				//Tell the emulator that HBlank has begun
 				PPU.State = PPUStatus.HBlank;
-				if (PPU.Mode0InterruptEnable) GB.CPU.SetInterrupt(InterruptType.Stat);
+				//Prepare for rendering the next scanline
+				Reset();	
+
+				//Raise an interrupt which notifies the CPU that the HBlank has begun if said interrupt is enabled.
+				if (PPU.Mode0InterruptEnable) 
+					GB.CPU.SetInterrupt(InterruptType.Stat);
 			}
 		}
 

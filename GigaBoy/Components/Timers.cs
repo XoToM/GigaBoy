@@ -84,5 +84,6 @@ namespace GigaBoy.Components
         {
             TMA = value;
         }
+
     }
 }
