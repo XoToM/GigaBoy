@@ -221,11 +221,11 @@ namespace GigaBoy.Components
 								Carry = idata != 0;
 								break;
 
-							case 8:
+							case 8:	//0x08 - LD [a16], SP
 								yield return false;
 								data = Fetch();
 								yield return false;
-								address = (ushort)((Fetch() << 8) | data);//Wrong?
+								address = (ushort)((Fetch() << 8) | data);
 								yield return false;
 								Store(address++, (byte)(SP & 0x00FF));
 								yield return false;

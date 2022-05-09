@@ -13,7 +13,7 @@ namespace GigaBoy.Components
         public enum TimerSpacingMode { _1024 = 0, _16 = 1, _64 = 2, _256 = 3 }
 
         public byte DivCount;
-        public byte Div { get; set; }
+        public byte Div { get; set; } = 0xAC;
 
         public byte Timer { get; set; }
         public byte TMA { get; set; }
@@ -61,12 +61,17 @@ namespace GigaBoy.Components
             return Div;
         }
         public byte GetTAC() {
-            return (byte)(((TimerEnable ? 1 : 0) << 2) | (int)TimerSpacing);
+            return (byte)(((TimerEnable ? 1 : 0) << 2) | (((int)TimerSpacing) & 0b00000011) | 0b11111000);
         }
         public void SetTAC(Byte value) {
             TimerEnable = (value & 4) != 0;
             TimerSpacing = (TimerSpacingMode)(value & 3);
             ResetTimerCounter();
+        }
+        public void InternalSetTAC(Byte value)
+        {
+            TimerEnable = (value & 4) != 0;
+            TimerSpacing = (TimerSpacingMode)(value & 3);
         }
         public byte GetTIMA()
         {
@@ -85,5 +90,9 @@ namespace GigaBoy.Components
             TMA = value;
         }
 
+        internal void InternalSetDiv(byte v)
+        {
+            Div = v;
+        }
     }
 }

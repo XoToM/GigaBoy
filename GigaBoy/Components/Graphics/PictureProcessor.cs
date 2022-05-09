@@ -334,8 +334,11 @@ namespace GigaBoy.Components.Graphics
 
 		public void FIFO_BackgroundLatch()
 		{
-			byte ybase = (byte)((PPU.SCY + LY) & 0xFF);   // calculates the effective vis. scanline
+			//Calculates the row of the tilemap which should be fetched, and which row of the tile contains the needed pixels
+			byte ybase = (byte)((PPU.SCY + LY) & 0xFF);   
+			//Calculates the address the rendering algorithm needs to fetch the pixels from
 			fetcher_address = (ushort)((0x9800 | ((PPU.BackgroundTileMap ? 1 : 0) << 10) | ((ybase & 0xf8) << 2) | (PPU.SCX & 0xf8) >> 3));
+			//Calculates how many pixels the rendering algorithm needs to discard. This allows the background to scroll to the sides by less than 8 pixels at a time.
 			xPixel = -(PPU.SCX & 7);
 		}
 		public void FIFO_WindowLatch() {

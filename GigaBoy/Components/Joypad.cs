@@ -45,7 +45,7 @@ namespace GigaBoy.Components
             value = (int)Buttons;
             
             if (!JoypadBankHigher) value = ((int)value >> 4);
-            return (byte)~(value & 0b00001111);
+            return (byte)(~(value & 0b00001111 | 0b00110000) | 0b11000000);
         }
 
         public void DirectWrite(ushort address, byte value)

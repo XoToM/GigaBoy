@@ -150,7 +150,7 @@ namespace GigaBoy.Components.Graphics
         public byte STAT 
         { 
             get {
-                return DirectSTAT;
+                return (byte)(DirectSTAT | 0b10000000);
             }
             set
             {
