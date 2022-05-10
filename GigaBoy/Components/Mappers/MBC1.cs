@@ -9,10 +9,12 @@ namespace GigaBoy.Components.Mappers
     public class MBC1 : MemoryMapper
     {
         public int RomXBank { get; set; } = 1;
+        public int PrimaryRomReg = 1;
+        public int SecondaryRomReg { get; private set; }
         public int ExpectedRomSize;
         public byte[,] Banks { get; protected set; }  
         public int BankCount { get; protected set; }
-#pragma warning disable CS8618 
+#pragma warning disable CS8618
         public MBC1(GBInstance gb,byte[] romImage,bool battery) : base(gb,romImage,battery) {   //  Visual Studio complains about the Banks property not being set, but it does get set in the SplitIntoBanks method which is called at the end of the constructor. Visual Studio just doesn't detect this.
 #pragma warning restore CS8618 
             byte romSizeByte = romImage[0x148];
@@ -59,15 +61,20 @@ namespace GigaBoy.Components.Mappers
             if (address <= 0x4000) {
                 value = (byte)(value & 0x1F);
                 if (value == 0) value = 1;
-                RomXBank = value % ((ExpectedRomSize / 0x4000) - 1);
+                PrimaryRomReg = value;
+                RecalculateROM();
                 return;
             }
-            throw new NotImplementedException("Ram banking, Large Rom Banking, and mode switching has not been implemented yet.");
-            //if (address < 0x6000) {
-                //RomBankOffset = (RomBankOffset & 0xFFFFF) | 
-                //RomBankOffset = RomBankOffset % RomImage.Length;
-                //return;
-            //}
+            //throw new NotImplementedException("Ram banking, Large Rom Banking, and mode switching has not been implemented yet.");
+            if (address < 0x6000) {
+                SecondaryRomReg = value & 0b00000011;
+                RecalculateROM();
+                return;
+            }
+        }
+        public void RecalculateROM()
+        {
+            RomXBank = (SecondaryRomReg << 5) | PrimaryRomReg;
         }
         public override byte DirectRead(int address)
         {
@@ -82,7 +89,7 @@ namespace GigaBoy.Components.Mappers
                 return 0;
             }
             if (address < 0xC000) {
-                throw new NotImplementedException("Cartridge RAM not implemented yet");
+                //throw new NotImplementedException("Cartridge RAM not implemented yet");
             }
             return 0;
         }

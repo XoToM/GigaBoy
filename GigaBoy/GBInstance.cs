@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace GigaBoy
-{
+{       //  Gigaboy emulator - made by XoToM    (DK)
     public class GBInstance
     {
         public const bool DEBUG = false; //Enable/Disable to disable all debug features. When this is false the compiler wil likely optimise out all debug features.
